@@ -1,0 +1,174 @@
+name: Hayat Tounes Bourguiba Visual Gate
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+    paths:
+      - 'raw_source_packs/**'
+      - 'source_overlay/**'
+      - 'source_overlay_packs/**'
+      - '.github/workflows/hayat-bourguiba-visual-gate.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hayat-bourguiba-visual-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  visual-runtime-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      GODOT_VERSION: '4.7.2'
+      GODOT_CHANNEL: 'stable'
+      LIBGL_ALWAYS_SOFTWARE: '1'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Reconstruct current source and overlays
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          out = Path('_project')
+          out.mkdir(parents=True, exist_ok=True)
+
+          def apply_packs(folder: str, expected: int | None = None) -> None:
+              source = Path(folder)
+              packs = sorted(source.glob('*.jsonl'))
+              if expected is not None and len(packs) != expected:
+                  raise SystemExit(f'{folder}:EXPECTED_{expected}_PACKS_FOUND_{len(packs)}')
+              chunks = {}
+              for pack in packs:
+                  for lineno, raw in enumerate(pack.read_text(encoding='utf-8').splitlines(), 1):
+                      if not raw.strip():
+                          continue
+                      row = json.loads(raw)
+                      rel = str(row['path'])
+                      idx = int(row.get('index', 0))
+                      if rel.startswith('/') or '..' in Path(rel).parts:
+                          raise SystemExit(f'UNSAFE_PATH:{pack}:{lineno}:{rel}')
+                      chunks.setdefault(rel, {})[idx] = str(row['content'])
+              for rel, parts in chunks.items():
+                  indexes = sorted(parts)
+                  if indexes != list(range(len(indexes))):
+                      raise SystemExit(f'NON_CONTIGUOUS:{rel}:{indexes}')
+                  target = out / rel
+                  target.parent.mkdir(parents=True, exist_ok=True)
+                  target.write_text(''.join(parts[i] for i in indexes), encoding='utf-8')
+
+          apply_packs('raw_source_packs', 18)
+          apply_packs('source_overlay_packs', 5)
+          loose = Path('source_overlay')
+          if loose.is_dir():
+              for src in loose.rglob('*'):
+                  if src.is_file():
+                      rel = src.relative_to(loose)
+                      target = out / rel
+                      target.parent.mkdir(parents=True, exist_ok=True)
+                      target.write_bytes(src.read_bytes())
+
+          required = [
+              'project.godot',
+              'scripts/world/art/TunisFacadePass.gd',
+              'scripts/world/art/TunisPublicRealmPass.gd',
+              'scripts/world/art/TunisMaterialLibrary.gd',
+              'tools/tests/bourguiba_visual_capture.gd',
+          ]
+          missing = [p for p in required if not (out / p).is_file()]
+          if missing:
+              raise SystemExit('MISSING_REQUIRED:' + ','.join(missing))
+          print('VISUAL_SOURCE_RECONSTRUCT_PASS')
+          PY
+
+      - name: Install exact Godot 4.7.2 and Xvfb
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends xvfb libgl1-mesa-dri mesa-utils
+          mkdir -p .godot-bin
+          curl -fL --retry 3 "https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}-${GODOT_CHANNEL}/Godot_v${GODOT_VERSION}-${GODOT_CHANNEL}_linux.x86_64.zip" -o /tmp/godot.zip
+          echo 'cadd3204e728a35d3f13adb7fd0d7902636b79f6b95c40c265eb73b6c35329e4  /tmp/godot.zip' | sha256sum -c -
+          unzip -q /tmp/godot.zip -d .godot-bin
+          GODOT_BIN="$GITHUB_WORKSPACE/.godot-bin/Godot_v${GODOT_VERSION}-${GODOT_CHANNEL}_linux.x86_64"
+          chmod +x "$GODOT_BIN"
+          echo "GODOT_BIN=$GODOT_BIN" >> "$GITHUB_ENV"
+          "$GODOT_BIN" --version | tee godot-version.txt
+          grep -F '4.7.2.stable.official.ed1daf0' godot-version.txt
+
+      - name: Strict import parser gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd _project
+          "$GODOT_BIN" --headless --editor --path . --quit-after 2 2>&1 | tee ../visual-import.log
+          cd ..
+          if grep -E 'SCRIPT ERROR:|Parse Error:|Failed to load script|Node not found:' visual-import.log; then
+            exit 71
+          fi
+          echo VISUAL_IMPORT_GATE_PASS
+
+      - name: Render deterministic Bourguiba evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd _project
+          xvfb-run -a -s '-screen 0 1280x720x24' "$GODOT_BIN" --path . --rendering-method gl_compatibility --script res://tools/tests/bourguiba_visual_capture.gd 2>&1 | tee ../bourguiba-visual.log
+          cd ..
+          grep -F 'BOURGUIBA_VISUAL_GATE_PASS' bourguiba-visual.log
+          if grep -E 'SCRIPT ERROR:|Parse Error:|Failed to load script|BOURGUIBA_VISUAL_.*INVALID|BOURGUIBA_VISUAL_.*FAILED|BOURGUIBA_VISUAL_.*MISSING' bourguiba-visual.log; then
+            exit 72
+          fi
+          test -s _project/visual-evidence/bourguiba-avenue.png
+          test -s _project/visual-evidence/bourguiba-storefront.png
+          test -s _project/visual-evidence/bourguiba-visual-evidence.json
+          sha256sum _project/visual-evidence/*.png | tee visual-image-sha256.txt
+
+      - name: Validate image dimensions and evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          import struct
+          from pathlib import Path
+
+          root = Path('_project/visual-evidence')
+          evidence = json.loads((root / 'bourguiba-visual-evidence.json').read_text(encoding='utf-8'))
+          if evidence.get('schema_version') != 1:
+              raise SystemExit('VISUAL_EVIDENCE_SCHEMA_INVALID')
+          captures = evidence.get('captures', [])
+          if len(captures) != 2 or not all(c.get('ok') for c in captures):
+              raise SystemExit('VISUAL_EVIDENCE_CAPTURE_INVALID')
+          for name in ('bourguiba-avenue.png', 'bourguiba-storefront.png'):
+              data = (root / name).read_bytes()
+              if data[:8] != b'\x89PNG\r\n\x1a\n':
+                  raise SystemExit(f'VISUAL_PNG_INVALID:{name}')
+              width, height = struct.unpack('>II', data[16:24])
+              if (width, height) != (1280, 720):
+                  raise SystemExit(f'VISUAL_DIMENSIONS_INVALID:{name}:{width}x{height}')
+          print('VISUAL_EVIDENCE_CONTRACT_PASS')
+          PY
+
+      - name: Upload visual regression evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hayat-tounes-bourguiba-visual-${{ github.run_id }}
+          if-no-files-found: error
+          retention-days: 14
+          path: |
+            godot-version.txt
+            visual-import.log
+            bourguiba-visual.log
+            visual-image-sha256.txt
+            _project/visual-evidence/bourguiba-avenue.png
+            _project/visual-evidence/bourguiba-storefront.png
+            _project/visual-evidence/bourguiba-visual-evidence.json
