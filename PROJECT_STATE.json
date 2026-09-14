@@ -5,13 +5,20 @@
   "version_code": 88,
   "package_id": "com.amir.hayattounes",
   "verified_runtime_source": {
-    "status": "previous_verified_source_preserved",
-    "note": "0.53.35 runtime identity must be recorded only after the new CI identity gate completes successfully."
+    "status": "verified",
+    "workflow_run_id": 34896777244,
+    "source_commit": "271ad0798c887ca2d1de1e4024fdfae8ca799692",
+    "runtime_source_file_count": 95,
+    "runtime_source_tree_sha256": "31ab8f4ee16643a3842d70af39863a4079f00325048b42418a0bbefa81f0d006",
+    "algorithm": "sha256-path-digest-size-v1"
   },
   "last_verified_android_rc": {
-    "version_name": "0.53.34",
-    "source_commit": "b9f24ca9d0f6ad67bffb4b8c6e815d857d7c1824",
-    "workflow_run_id": 34892519767,
+    "version_name": "0.53.35",
+    "version_code": 88,
+    "source_commit": "5a7f6ef9eeb65b0cfa0a1e7de7aa1a505c7b5d34",
+    "runtime_source_identity_commit": "271ad0798c887ca2d1de1e4024fdfae8ca799692",
+    "workflow_run_id": 34896744422,
+    "artifact_id": 10368562504,
     "status": "success",
     "godot": "4.7.2.stable.official.ed1daf0bf",
     "parser_import": "pass",
@@ -22,35 +29,30 @@
     "bourguiba_blockout_gate": "pass",
     "bourguiba_generated_geometry": 434,
     "bourguiba_required_nodes": 12,
+    "bourguiba_environment_generated": 728,
     "osm_buildings": 146,
     "osm_roads": 191,
     "osm_graph_nodes": 827,
     "osm_graph_edges": 924,
+    "osm_largest_component": 741,
+    "osm_connectivity_ratio": 0.896,
+    "osm_span_m": 3253.0,
     "runtime_smoke": "pass",
+    "real_osm_runtime": true,
     "android_export": "pass",
+    "project_icon_export": "pass",
     "signature_v2": true,
     "signature_v3": true,
     "zipalign": "pass",
-    "apk_sha256": "43affa3bb18190a8dcaebda9389b164ee576d3970913964b9e5aac3863ec1fc8"
-  },
-  "current_rc_candidate": {
-    "version_name": "0.53.35",
-    "version_code": 88,
-    "runtime_source_commit": "94f6421e7432cdbd0ad5024a5d4e67910b616f06",
-    "status": "ci_pending",
-    "changes": [
-      "production project icon bound in project.godot",
-      "Android launcher icon bound in both export presets",
-      "Android export gate fails closed on missing project icon warning",
-      "runtime smoke requires real_osm=true",
-      "Bourguiba gate explicitly requires OSM and navigation PASS markers"
-    ]
+    "apk_sha256": "2b1e75c58debcd8a049a0b127a13965a64fb4685e4c4fc412432f00f7d9702ef",
+    "artifact_zip_sha256": "0c3fd34ddf7fbf928e50ca657c6f7ef76eedc73fb893d218370d8a5fe5be2d7a"
   },
   "physical_android_acceptance": {
     "status": "not_verified",
     "harness": "tools/android/device_acceptance.py",
     "harness_contract_test": "pass",
     "harness_ci_run_id": 34883776560,
+    "required_apk_sha256": "2b1e75c58debcd8a049a0b127a13965a64fb4685e4c4fc412432f00f7d9702ef",
     "required_evidence": [
       "device-acceptance.json",
       "launch.png",
@@ -67,5 +69,5 @@
     "visual_milestone_pass": false
   },
   "final_release": false,
-  "next_locked_task": "Require CI PASS for v0.53.35 source identity, exact Godot runtime, OSM/navigation gates and Android export without icon warnings. Then run that exact APK through physical Android device acceptance. Visual realism remains unclaimed until its evidence gate passes."
+  "next_locked_task": "Run physical Android device acceptance against the exact APK SHA-256 2b1e75c58debcd8a049a0b127a13965a64fb4685e4c4fc412432f00f7d9702ef and capture device-acceptance.json, launch.png, logcat, gfxinfo framestats and meminfo. Do not claim visual realism or final release until their independent evidence gates pass."
 }
