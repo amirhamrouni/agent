@@ -1,0 +1,123 @@
+name: Hayat Tounes Android RC XZ
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+    paths:
+      - 'source_xz_parts/**'
+      - '.github/workflows/hayat-tounes-android-xz.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hayat-tounes-android-xz-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  android-rc:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      GODOT_VERSION: '4.7.2'
+      GODOT_CHANNEL: 'stable'
+      ANDROID_HOME: ${{ github.workspace }}/.android-sdk
+      ANDROID_SDK_ROOT: ${{ github.workspace }}/.android-sdk
+      AUTO_BOOTSTRAP_GODOT: '0'
+      SOURCE_SHA256: '3778ea2ebcdc0f9afaeb1892ebb38ff911fe38f30ccc6d97f82bf877a7c67e9c'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Reassemble verified source
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f source_xz_parts/part-000.b64
+          cat source_xz_parts/part-*.b64 | base64 -d > /tmp/hayat.tar.xz
+          echo "$SOURCE_SHA256  /tmp/hayat.tar.xz" | sha256sum -c -
+          mkdir -p _project
+          tar -xJf /tmp/hayat.tar.xz -C _project
+          test -s _project/project.godot
+          echo "PROJECT_DIR=$GITHUB_WORKSPACE/_project" >> "$GITHUB_ENV"
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager 'platform-tools' 'build-tools;35.0.1' 'platforms;android-35' 'cmake;3.10.2.4988404' 'ndk;28.1.13356709'
+          test -x "$ANDROID_HOME/build-tools/35.0.1/apksigner"
+
+      - name: Install exact Godot and templates
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .godot-bin /tmp/godot-templates
+          curl -fL --retry 3 "https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}-${GODOT_CHANNEL}/Godot_v${GODOT_VERSION}-${GODOT_CHANNEL}_linux.x86_64.zip" -o /tmp/godot.zip
+          echo 'cadd3204e728a35d3f13adb7fd0d7902636b79f6b95c40c265eb73b6c35329e4  /tmp/godot.zip' | sha256sum -c -
+          unzip -q /tmp/godot.zip -d .godot-bin
+          GODOT_BIN="$GITHUB_WORKSPACE/.godot-bin/Godot_v${GODOT_VERSION}-${GODOT_CHANNEL}_linux.x86_64"
+          chmod +x "$GODOT_BIN"
+          echo "GODOT_BIN=$GODOT_BIN" >> "$GITHUB_ENV"
+          "$GODOT_BIN" --version | tee /tmp/godot-version.txt
+          grep -F '4.7.2' /tmp/godot-version.txt
+          curl -fL --retry 3 "https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}-${GODOT_CHANNEL}/Godot_v${GODOT_VERSION}-${GODOT_CHANNEL}_export_templates.tpz" -o /tmp/templates.tpz
+          unzip -q /tmp/templates.tpz -d /tmp/godot-templates
+          mkdir -p "$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.${GODOT_CHANNEL}"
+          cp -a /tmp/godot-templates/templates/. "$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.${GODOT_CHANNEL}/"
+          test -s "$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.${GODOT_CHANNEL}/android_debug.apk"
+
+      - name: Production and runtime verification
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$PROJECT_DIR"
+          python3 tools/release/release_gate.py
+          python3 tools/tests/production_gate.py
+          python3 tools/tests/static_integrity.py
+          python3 tools/release/release_metadata.py --verify
+          python3 tools/runtime/verify_local_runtime.py --godot "$GODOT_BIN"
+          python3 tools/release/verify_runtime_evidence.py
+
+      - name: Build Android RC
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$PROJECT_DIR"
+          chmod +x tools/release/build_android_rc.sh || true
+          bash tools/release/build_android_rc.sh
+
+      - name: Verify APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$PROJECT_DIR"
+          APK="$(python3 tools/release/release_metadata.py --field debug_apk)"
+          test -s "$APK"
+          test "$(stat -c%s "$APK")" -gt 1000000
+          "$ANDROID_HOME/build-tools/35.0.1/apksigner" verify --verbose "$APK"
+          sha256sum "$APK" | tee "$APK.sha256"
+          echo "APK_PATH=$PROJECT_DIR/$APK" >> "$GITHUB_ENV"
+          echo "APK_SHA_PATH=$PROJECT_DIR/$APK.sha256" >> "$GITHUB_ENV"
+
+      - name: Upload verified APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: hayat-tounes-android-rc-${{ github.run_number }}
+          if-no-files-found: error
+          retention-days: 14
+          path: |
+            ${{ env.APK_PATH }}
+            ${{ env.APK_SHA_PATH }}
+            ${{ env.PROJECT_DIR }}/build/reports/**
