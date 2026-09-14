@@ -18,8 +18,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
-      EXPECTED_RUNTIME_SOURCE_TREE: '925fd613e8a1a75b1f7f22ed811e7aa112912843ed732c1e14dac1daf194187b'
-      EXPECTED_RUNTIME_SOURCE_FILES: '97'
+      EXPECTED_RUNTIME_SOURCE_TREE: '925fd6d6fe7a57a3a60f9740e9028dc911e4f85a96f2bd74c3dbf5694e670fab'
+      EXPECTED_RUNTIME_SOURCE_FILES: '95'
       VERSION_NAME: '0.53.35'
     steps:
       - uses: actions/checkout@v4
