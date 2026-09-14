@@ -1,0 +1,66 @@
+name: Hayat Tounes Habib Bourguiba OSM Process
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+    paths:
+      - 'source_overlay/tools/osm/process_bourguiba.py'
+      - '.github/workflows/hayat-osm-process.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  process-osm:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Process bounded OSM snapshot
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 source_overlay/tools/osm/process_bourguiba.py | tee osm-process.log
+          test -s source_overlay/data/osm/tunis_bourguiba_processed.json
+          grep -q 'OSM_PROCESS_PASS' osm-process.log
+
+      - name: Validate processed schema and provenance linkage
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib, json
+          from pathlib import Path
+          raw = Path('source_overlay/data/world/habib_bourguiba_osm.json').read_bytes()
+          processed_path = Path('source_overlay/data/osm/tunis_bourguiba_processed.json')
+          doc = json.loads(processed_path.read_text(encoding='utf-8'))
+          meta = doc['meta']
+          assert meta['schema_version'] >= 2
+          assert meta['source'] == 'OpenStreetMap'
+          assert meta['license'] == 'ODbL-1.0'
+          assert meta['projection'] == 'local_equirectangular'
+          assert meta['source_sha256'] == hashlib.sha256(raw).hexdigest()
+          assert meta['building_count'] == len(doc['buildings']) and meta['building_count'] >= 10
+          assert meta['road_count'] == len(doc['roads']) and meta['road_count'] >= 5
+          assert meta['graph_node_count'] == len(doc['road_graph']['nodes']) and meta['graph_node_count'] >= 2
+          assert meta['graph_edge_count'] == len(doc['road_graph']['edges']) and meta['graph_edge_count'] >= 1
+          print('OSM_PROCESSED_SCHEMA_PASS', meta['building_count'], meta['road_count'], meta['graph_node_count'], meta['graph_edge_count'])
+          PY
+
+      - name: Commit processed OSM runtime data
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'hayat-tounes-ci'
+          git config user.email 'actions@users.noreply.github.com'
+          git add source_overlay/data/osm/tunis_bourguiba_processed.json
+          if git diff --cached --quiet; then
+            echo 'Processed OSM unchanged; nothing to commit.'
+            exit 0
+          fi
+          git commit -m 'data: install processed Habib Bourguiba OSM runtime map'
+          git push origin HEAD:main
