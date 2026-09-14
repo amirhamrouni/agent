@@ -11,6 +11,7 @@ var facade_count := 0
 var shopfront_count := 0
 var signage_count := 0
 var balcony_count := 0
+var material_usage := {"plaster": 0, "stone": 0, "glass": 0, "metal": 0, "wood": 0, "fabric": 0}
 var medium_detail_nodes: Array[Node3D] = []
 var high_detail_nodes: Array[Node3D] = []
 var current_detail_level := 2
@@ -46,15 +47,22 @@ func _material(color: Color, roughness := 0.86, metallic := 0.0) -> StandardMate
     return material
 
 func _box(parent: Node3D, pos: Vector3, size: Vector3, color: Color, roughness := 0.86, metallic := 0.0) -> MeshInstance3D:
+    return _box_with_material(parent, pos, size, _material(color, roughness, metallic))
+
+func _box_with_material(parent: Node3D, pos: Vector3, size: Vector3, material: Material) -> MeshInstance3D:
     var instance := MeshInstance3D.new()
     var mesh := BoxMesh.new()
     mesh.size = size
     instance.mesh = mesh
     instance.position = pos
-    instance.material_override = _material(color, roughness, metallic)
+    instance.material_override = material
     parent.add_child(instance)
     generated_count += 1
     return instance
+
+func _track_material(kind: String, material: Material) -> Material:
+    material_usage[kind] = int(material_usage.get(kind, 0)) + 1
+    return material
 
 func _build_facade_row(z: float, facing: float) -> void:
     var row := Node3D.new()
@@ -77,18 +85,18 @@ func _build_facade_row(z: float, facing: float) -> void:
         var width: float = widths[i]
         var height: float = heights[i]
         var cx := x + width * 0.5
-        var root := Node3D.new()
-        root.name = "Facade_%02d" % i
-        root.set_meta("bourguiba_facade", true)
-        root.set_meta("height_m", height)
-        row.add_child(root)
+        var facade_root := Node3D.new()
+        facade_root.name = "Facade_%02d" % i
+        facade_root.set_meta("bourguiba_facade", true)
+        facade_root.set_meta("height_m", height)
+        row.add_child(facade_root)
         facade_count += 1
 
-        _box(root, Vector3(cx, height * 0.5, z + facing * BUILDING_DEPTH * 0.5), Vector3(width - 0.35, height, BUILDING_DEPTH), plaster[i], 0.93)
-        _box(root, Vector3(cx, 0.55, z - facing * 0.18), Vector3(width - 0.75, 1.1, 0.24), Color("#b7a58c"), 0.94)
-        _build_ground_floor(root, cx, z, facing, width, i, signs_ar, signs_fr, awnings)
-        _build_windows_and_balconies(root, cx, z, facing, width, height, i)
-        _build_cornice(root, cx, z, facing, width, height)
+        _box_with_material(facade_root, Vector3(cx, height * 0.5, z + facing * BUILDING_DEPTH * 0.5), Vector3(width - 0.35, height, BUILDING_DEPTH), _track_material("plaster", TunisMaterialLibrary.plaster(plaster[i])))
+        _box_with_material(facade_root, Vector3(cx, 0.55, z - facing * 0.18), Vector3(width - 0.75, 1.1, 0.24), _track_material("stone", TunisMaterialLibrary.stone(Color("#b7a58c"))))
+        _build_ground_floor(facade_root, cx, z, facing, width, i, signs_ar, signs_fr, awnings)
+        _build_windows_and_balconies(facade_root, cx, z, facing, width, height, i)
+        _build_cornice(facade_root, cx, z, facing, width, height)
         x += width
 
 func _build_ground_floor(root: Node3D, cx: float, z: float, facing: float, width: float, index: int, signs_ar: Array, signs_fr: Array, awnings: Array) -> void:
@@ -103,10 +111,12 @@ func _build_ground_floor(root: Node3D, cx: float, z: float, facing: float, width
         root.add_child(frame)
         shopfront_count += 1
 
-        _box(frame, Vector3(bx, 2.15, z - facing * 0.12), Vector3(bay_w - 0.32, 3.7, 0.18), Color("#252d31"), 0.34, 0.22)
-        _box(frame, Vector3(bx, 2.15, z - facing * 0.24), Vector3(bay_w - 0.58, 3.35, 0.08), Color("#496066"), 0.18, 0.10)
+        _box_with_material(frame, Vector3(bx, 2.15, z - facing * 0.12), Vector3(bay_w - 0.32, 3.7, 0.18), _track_material("metal", TunisMaterialLibrary.metal(Color("#252d31"))))
+        _box_with_material(frame, Vector3(bx, 2.15, z - facing * 0.24), Vector3(bay_w - 0.58, 3.35, 0.08), _track_material("glass", TunisMaterialLibrary.glass_tinted()))
+        var door_x := bx - (bay_w - 0.9) * 0.28
+        _register_detail(_box_with_material(frame, Vector3(door_x, 1.65, z - facing * 0.31), Vector3(0.92, 3.0, 0.08), _track_material("wood", TunisMaterialLibrary.wood(Color("#654631")))), 1)
         var awning_color: Color = awnings[(index + bay) % awnings.size()]
-        _register_detail(_box(frame, Vector3(bx, 4.25, z - facing * 0.75), Vector3(bay_w - 0.25, 0.18, 1.35), awning_color, 0.82), 1)
+        _register_detail(_box_with_material(frame, Vector3(bx, 4.25, z - facing * 0.75), Vector3(bay_w - 0.25, 0.18, 1.35), _track_material("fabric", TunisMaterialLibrary.fabric(awning_color))), 1)
 
         var sign := Label3D.new()
         sign.name = "ArabicSign" if bay % 2 == 0 else "FrenchSign"
@@ -118,6 +128,7 @@ func _build_ground_floor(root: Node3D, cx: float, z: float, facing: float, width
         sign.position = Vector3(bx, 4.8, z - facing * 0.33)
         sign.rotation_degrees.y = 180.0 if facing > 0.0 else 0.0
         sign.set_meta("bourguiba_signage", true)
+        sign.set_meta("fictional_signage", true)
         frame.add_child(sign)
         signage_count += 1
 
@@ -130,22 +141,22 @@ func _build_windows_and_balconies(root: Node3D, cx: float, z: float, facing: flo
         var start_x := cx - (float(window_count - 1) * spacing) * 0.5
         for w in range(window_count):
             var wx := start_x + float(w) * spacing
-            _register_detail(_box(root, Vector3(wx, floor_y, z - facing * 0.14), Vector3(1.55, 2.15, 0.12), Color("#45606a"), 0.22, 0.08), 1)
-            _register_detail(_box(root, Vector3(wx, floor_y - 1.22, z - facing * 0.20), Vector3(1.85, 0.14, 0.30), Color("#c8b697"), 0.88), 2)
+            _register_detail(_box_with_material(root, Vector3(wx, floor_y, z - facing * 0.14), Vector3(1.55, 2.15, 0.12), _track_material("glass", TunisMaterialLibrary.glass_tinted())), 1)
+            _register_detail(_box_with_material(root, Vector3(wx, floor_y - 1.22, z - facing * 0.20), Vector3(1.85, 0.14, 0.30), _track_material("stone", TunisMaterialLibrary.stone(Color("#c8b697")))), 2)
         if floor_index % 2 == index % 2:
             var balcony := Node3D.new()
             balcony.name = "Balcony_%02d" % floor_index
             balcony.set_meta("bourguiba_balcony", true)
             root.add_child(balcony)
             balcony_count += 1
-            _register_detail(_box(balcony, Vector3(cx, floor_y - 1.25, z - facing * 0.78), Vector3(width * 0.66, 0.16, 1.35), Color("#c8b99e"), 0.93), 1)
-            _register_detail(_box(balcony, Vector3(cx, floor_y - 0.35, z - facing * 1.40), Vector3(width * 0.64, 1.45, 0.07), Color("#373b3d"), 0.46, 0.48), 2)
+            _register_detail(_box_with_material(balcony, Vector3(cx, floor_y - 1.25, z - facing * 0.78), Vector3(width * 0.66, 0.16, 1.35), _track_material("stone", TunisMaterialLibrary.stone(Color("#c8b99e")))), 1)
+            _register_detail(_box_with_material(balcony, Vector3(cx, floor_y - 0.35, z - facing * 1.40), Vector3(width * 0.64, 1.45, 0.07), _track_material("metal", TunisMaterialLibrary.metal(Color("#373b3d")))), 2)
         floor_y += 3.4
         floor_index += 1
 
 func _build_cornice(root: Node3D, cx: float, z: float, facing: float, width: float, height: float) -> void:
-    _register_detail(_box(root, Vector3(cx, height - 0.45, z - facing * 0.28), Vector3(width, 0.55, 0.55), Color("#e4d8c1"), 0.94), 1)
-    _register_detail(_box(root, Vector3(cx, height + 0.05, z - facing * 0.12), Vector3(width - 0.5, 0.35, 0.30), Color("#bfae92"), 0.94), 2)
+    _register_detail(_box_with_material(root, Vector3(cx, height - 0.45, z - facing * 0.28), Vector3(width, 0.55, 0.55), _track_material("stone", TunisMaterialLibrary.stone(Color("#e4d8c1")))), 1)
+    _register_detail(_box_with_material(root, Vector3(cx, height + 0.05, z - facing * 0.12), Vector3(width - 0.5, 0.35, 0.30), _track_material("stone", TunisMaterialLibrary.stone(Color("#bfae92")))), 2)
 
 func get_runtime_summary() -> Dictionary:
     return {
@@ -155,4 +166,6 @@ func get_runtime_summary() -> Dictionary:
         "signage_count": signage_count,
         "balcony_count": balcony_count,
         "detail_level": current_detail_level,
+        "material_usage": material_usage.duplicate(true),
+        "mobile_material_contract": TunisMaterialLibrary.mobile_contract(),
     }
