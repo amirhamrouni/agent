@@ -1,6 +1,7 @@
 extends SceneTree
 
 const PublicRealmPass = preload("res://scripts/world/art/TunisPublicRealmPass.gd")
+const FacadePass = preload("res://scripts/world/art/TunisFacadePass.gd")
 const OsmLoader = preload("res://scripts/world/osm/OsmWorldLoader.gd")
 const RoadGraphClass = preload("res://scripts/world/osm/RoadGraph.gd")
 const REFERENCE_PATH := "res://data/world/habib_bourguiba_reference.json"
@@ -49,6 +50,11 @@ func _initialize() -> void:
         quit(43)
         return
 
+    var environment_stats := _verify_bourguiba_environment()
+    if environment_stats.is_empty():
+        quit(44)
+        return
+
     var runtime_stats := _verify_real_map_runtime(reference)
     if runtime_stats.is_empty():
         quit(45)
@@ -70,6 +76,10 @@ func _initialize() -> void:
         int(processed_counts.get("graph_nodes", 0)),
         int(processed_counts.get("graph_edges", 0)),
     ])
+    print("BOURGUIBA_ENVIRONMENT_GATE_PASS facades=%d shopfronts=%d signage=%d balconies=%d generated=%d" % [
+        int(environment_stats["facades"]), int(environment_stats["shopfronts"]), int(environment_stats["signage"]),
+        int(environment_stats["balconies"]), int(environment_stats["generated"])
+    ])
     print("BOURGUIBA_OSM_RUNTIME_GATE_PASS buildings=%d roads=%d children=%d" % [
         int(runtime_stats["buildings"]), int(runtime_stats["roads"]), int(runtime_stats["children"])
     ])
@@ -79,6 +89,53 @@ func _initialize() -> void:
     ])
     print("BOURGUIBA_BLOCKOUT_GATE_PASS generated=%d required_nodes=%d" % [scene.generated_count, required_nodes.size()])
     quit(0)
+
+func _verify_bourguiba_environment() -> Dictionary:
+    var environment := FacadePass.new()
+    root.add_child(environment)
+    environment.build()
+    var north := environment.get_node_or_null("BourguibaNorthFacades")
+    var south := environment.get_node_or_null("BourguibaSouthFacades")
+    if north == null or south == null:
+        push_error("BOURGUIBA_ENVIRONMENT_FACADE_ROWS_MISSING")
+        return {}
+    if environment.facade_count < 16:
+        push_error("BOURGUIBA_ENVIRONMENT_FACADE_COUNT_LOW:%d" % environment.facade_count)
+        return {}
+    if environment.shopfront_count < 40:
+        push_error("BOURGUIBA_ENVIRONMENT_SHOPFRONT_COUNT_LOW:%d" % environment.shopfront_count)
+        return {}
+    if environment.signage_count != environment.shopfront_count:
+        push_error("BOURGUIBA_ENVIRONMENT_SIGNAGE_CONTRACT_FAILED signs=%d shops=%d" % [environment.signage_count, environment.shopfront_count])
+        return {}
+    if environment.balcony_count < 20:
+        push_error("BOURGUIBA_ENVIRONMENT_BALCONY_COUNT_LOW:%d" % environment.balcony_count)
+        return {}
+    if environment.generated_count < 300:
+        push_error("BOURGUIBA_ENVIRONMENT_GEOMETRY_LOW:%d" % environment.generated_count)
+        return {}
+    var arabic_signs := environment.find_children("ArabicSign", "Label3D", true, false)
+    var french_signs := environment.find_children("FrenchSign", "Label3D", true, false)
+    if arabic_signs.size() < 16 or french_signs.size() < 16:
+        push_error("BOURGUIBA_ENVIRONMENT_BILINGUAL_SIGNAGE_LOW ar=%d fr=%d" % [arabic_signs.size(), french_signs.size()])
+        return {}
+    environment.apply_visual_budget(0)
+    for detail in environment.medium_detail_nodes:
+        if is_instance_valid(detail) and detail.visible:
+            push_error("BOURGUIBA_ENVIRONMENT_LOD_MEDIUM_VISIBLE_AT_LOW")
+            return {}
+    for detail in environment.high_detail_nodes:
+        if is_instance_valid(detail) and detail.visible:
+            push_error("BOURGUIBA_ENVIRONMENT_LOD_HIGH_VISIBLE_AT_LOW")
+            return {}
+    environment.apply_visual_budget(2)
+    return {
+        "facades": environment.facade_count,
+        "shopfronts": environment.shopfront_count,
+        "signage": environment.signage_count,
+        "balconies": environment.balcony_count,
+        "generated": environment.generated_count,
+    }
 
 func _verify_real_map_runtime(reference: Dictionary) -> Dictionary:
     var snapshot: Dictionary = reference.get("snapshot", {})
