@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "project": "Hayat Tounes",
+  "version_name": "0.53.34",
+  "version_code": 87,
+  "package_id": "com.amir.hayattounes",
+  "verified_runtime_source": {
+    "file_count": 89,
+    "tree_sha256": "637708f67ec6b099ddaaaf92b1b2d8ffb1fc2c3285a063b04cf4fe0d75d57060",
+    "identity_run_id": 34878029068,
+    "identity_status": "success"
+  },
+  "android_rc": {
+    "source_commit": "7d024d67229f2fb0f029a9d47fa4b1dec14035de",
+    "workflow_run_id": 34877890020,
+    "status": "success",
+    "godot": "4.7.2.stable.official.ed1daf0bf",
+    "parser_import": "pass",
+    "runtime_smoke": "pass",
+    "android_export": "pass",
+    "signature_v2": true,
+    "signature_v3": true,
+    "zipalign": "pass",
+    "apk_sha256": "37f37ef13bb7b15f6d6a590677141f2740785079c0c3335bb12ebcaff5d83f24"
+  },
+  "visual_readiness": {
+    "real_osm": false,
+    "real_player_asset": false,
+    "real_vehicle_count": 0,
+    "visual_milestone_pass": false
+  },
+  "physical_android_acceptance": "not_verified",
+  "final_release": false,
+  "next_locked_task": "Physical Android device acceptance for the verified RC, followed by real-world asset/provenance work without claiming visual realism before evidence."
+}
