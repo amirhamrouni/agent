@@ -28,7 +28,7 @@ jobs:
       GODOT_CHANNEL: 'stable'
       ANDROID_HOME: ${{ github.workspace }}/.android-sdk
       ANDROID_SDK_ROOT: ${{ github.workspace }}/.android-sdk
-      APK_PATH: ${{ github.workspace }}/_project/build/android/hayat-tounes-v0.53.34-debug.apk
+      APK_PATH: ${{ github.workspace }}/_project/build/android/hayat-tounes-v0.53.35-debug.apk
 
     steps:
       - uses: actions/checkout@v4
@@ -91,7 +91,8 @@ jobs:
               'autoload/SessionGuard.gd', 'scripts/core/ProductionWorld.gd',
               'scripts/world/PopulationSpawner.gd', 'scripts/world/time/DayNightManager.gd',
               'scripts/world/art/TunisResidentialLifePass.gd', 'scripts/ui/GameHUD.gd',
-              'tools/tests/bourguiba_blockout_test.gd'
+              'tools/tests/bourguiba_blockout_test.gd',
+              'assets/branding/hayat_tounes_icon.svg'
           ]
           missing = [p for p in required if not (out / p).is_file()]
           if missing:
@@ -101,9 +102,10 @@ jobs:
               raise SystemExit(f'INSUFFICIENT_GDSCRIPT_COUNT:{gd_count}')
           print(f'RECONSTRUCT_PASS base={base_count} overlay_pack={overlay_count} loose={loose_count} gdscript={gd_count}')
           PY
-          grep -F 'config/version="0.53.34"' _project/project.godot
-          grep -F 'version/code=87' _project/export_presets.cfg
-          grep -F 'version/name="0.53.34"' _project/export_presets.cfg
+          grep -F 'config/version="0.53.35"' _project/project.godot
+          grep -F 'config/icon="res://assets/branding/hayat_tounes_icon.svg"' _project/project.godot
+          grep -F 'version/code=88' _project/export_presets.cfg
+          grep -F 'version/name="0.53.35"' _project/export_presets.cfg
           grep -F 'package/unique_name="com.amir.hayattounes"' _project/export_presets.cfg
 
       - name: Setup Java 17
@@ -172,6 +174,8 @@ jobs:
           "$GODOT_BIN" --headless --path . --script res://tools/tests/bourguiba_blockout_test.gd 2>&1 | tee ../bourguiba-blockout.log
           cd ..
           grep -F 'BOURGUIBA_BLOCKOUT_GATE_PASS' bourguiba-blockout.log
+          grep -F 'BOURGUIBA_OSM_RUNTIME_GATE_PASS' bourguiba-blockout.log
+          grep -F 'BOURGUIBA_NAVIGATION_GATE_PASS' bourguiba-blockout.log
           if grep -E 'SCRIPT ERROR:|Parse Error:|Failed to load script|BOURGUIBA_BLOCKOUT_.*FAILED|BOURGUIBA_BLOCKOUT_MISSING_NODE|BOURGUIBA_BLOCKOUT_INSUFFICIENT_GEOMETRY' bourguiba-blockout.log; then
             exit 44
           fi
@@ -190,6 +194,8 @@ jobs:
           hits = [x for x in fatal if x in log]
           if hits:
               raise SystemExit('FATAL_GODOT_RUNTIME_ERRORS:' + ','.join(hits))
+          if '"real_osm": true' not in log:
+              raise SystemExit('REAL_OSM_RUNTIME_READINESS_MISSING')
           print('GODOT_RUNTIME_GATE_PASS')
           PY
 
@@ -199,12 +205,12 @@ jobs:
           set -euo pipefail
           cd _project
           mkdir -p build/android
-          "$GODOT_BIN" --headless --path . --export-debug 'Android Development' 'build/android/hayat-tounes-v0.53.34-debug.apk' 2>&1 | tee ../godot-export.log
+          "$GODOT_BIN" --headless --path . --export-debug 'Android Development' 'build/android/hayat-tounes-v0.53.35-debug.apk' 2>&1 | tee ../godot-export.log
           cd ..
           python3 - <<'PY'
           from pathlib import Path
           log = Path('godot-export.log').read_text(errors='replace')
-          fatal = ['SCRIPT ERROR:', 'Parse Error:', 'Failed to load script', 'ERROR: Failed to export']
+          fatal = ['SCRIPT ERROR:', 'Parse Error:', 'Failed to load script', 'ERROR: Failed to export', 'No project icon specified']
           hits = [x for x in fatal if x in log]
           if hits:
               raise SystemExit('FATAL_GODOT_EXPORT_ERRORS:' + ','.join(hits))
@@ -219,18 +225,18 @@ jobs:
           set -euo pipefail
           "$ANDROID_HOME/build-tools/35.0.1/apksigner" verify --verbose --print-certs "$APK_PATH" | tee apk-signature.txt
           "$ANDROID_HOME/build-tools/35.0.1/zipalign" -c -P 16 -v 4 "$APK_PATH" | tee apk-zipalign.txt
-          sha256sum "$APK_PATH" | tee hayat-tounes-v0.53.34-debug.apk.sha256
+          sha256sum "$APK_PATH" | tee hayat-tounes-v0.53.35-debug.apk.sha256
           ls -lh "$APK_PATH"
 
       - name: Upload verified APK and runtime evidence
         uses: actions/upload-artifact@v4
         with:
-          name: hayat-tounes-v0.53.34-android-debug
+          name: hayat-tounes-v0.53.35-android-debug
           if-no-files-found: error
           retention-days: 14
           path: |
-            _project/build/android/hayat-tounes-v0.53.34-debug.apk
-            hayat-tounes-v0.53.34-debug.apk.sha256
+            _project/build/android/hayat-tounes-v0.53.35-debug.apk
+            hayat-tounes-v0.53.35-debug.apk.sha256
             apk-signature.txt
             apk-zipalign.txt
             godot-import.log
@@ -242,7 +248,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: hayat-tounes-v0.53.34-failure-diagnostics
+          name: hayat-tounes-v0.53.35-failure-diagnostics
           if-no-files-found: ignore
           retention-days: 7
           path: |
