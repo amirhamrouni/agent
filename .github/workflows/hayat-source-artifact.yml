@@ -1,0 +1,130 @@
+name: Hayat Tounes Source Artifact
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+    paths:
+      - 'raw_source_packs/**'
+      - 'source_overlay/**'
+      - 'source_overlay_packs/**'
+      - '.github/workflows/hayat-source-artifact.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  source-artifact:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      EXPECTED_RUNTIME_SOURCE_TREE: '31ab8f4ee16643a3842d70af39863a4079f00325048b42418a0bbefa81f0d006'
+      EXPECTED_RUNTIME_SOURCE_FILES: '95'
+      VERSION_NAME: '0.53.35'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Reconstruct project source
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          out = Path('_project')
+          out.mkdir(parents=True, exist_ok=True)
+
+          def apply_packs(folder: str, expected: int) -> None:
+              packs = sorted(Path(folder).glob('*.jsonl'))
+              if len(packs) != expected:
+                  raise SystemExit(f'{folder}:EXPECTED_{expected}_PACKS_FOUND_{len(packs)}')
+              chunks = {}
+              for pack in packs:
+                  for lineno, raw in enumerate(pack.read_text(encoding='utf-8').splitlines(), 1):
+                      if not raw.strip():
+                          continue
+                      row = json.loads(raw)
+                      rel = str(row['path'])
+                      idx = int(row.get('index', 0))
+                      if rel.startswith('/') or '..' in Path(rel).parts:
+                          raise SystemExit(f'UNSAFE_PATH:{pack}:{lineno}:{rel}')
+                      chunks.setdefault(rel, {})[idx] = str(row['content'])
+              for rel, parts in chunks.items():
+                  indexes = sorted(parts)
+                  if indexes != list(range(len(indexes))):
+                      raise SystemExit(f'NON_CONTIGUOUS:{rel}:{indexes}')
+                  target = out / rel
+                  target.parent.mkdir(parents=True, exist_ok=True)
+                  target.write_text(''.join(parts[i] for i in indexes), encoding='utf-8')
+
+          apply_packs('raw_source_packs', 18)
+          apply_packs('source_overlay_packs', 5)
+          loose = Path('source_overlay')
+          for src in loose.rglob('*'):
+              if src.is_file():
+                  target = out / src.relative_to(loose)
+                  target.parent.mkdir(parents=True, exist_ok=True)
+                  target.write_bytes(src.read_bytes())
+          PY
+
+      - name: Verify runtime source identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib, json, os
+
+          root = Path('_project')
+          root_files = {'project.godot','export_presets.cfg','RELEASE_METADATA.json','main.tscn','main.gd','main.gd.uid','main_production.tscn'}
+          runtime_dirs = {'autoload','scripts','shaders','data','assets'}
+          excluded_names = {'SOURCES.json'}
+
+          def allowed(rel: Path) -> bool:
+              if not rel.parts or rel.name in excluded_names or rel.name.endswith(('.pyc','.pyo')):
+                  return False
+              if len(rel.parts) == 1:
+                  return rel.name in root_files
+              return rel.parts[0] in runtime_dirs
+
+          files = []
+          for path in sorted(root.rglob('*'), key=lambda p: p.as_posix()):
+              rel = path.relative_to(root)
+              if not allowed(rel) or not path.is_file():
+                  continue
+              digest = hashlib.sha256(path.read_bytes()).hexdigest()
+              files.append({'path': rel.as_posix(), 'sha256': digest, 'size_bytes': path.stat().st_size})
+          h = hashlib.sha256()
+          for item in files:
+              h.update(f"{item['path']}\0{item['sha256']}\0{item['size_bytes']}\n".encode())
+          tree = h.hexdigest()
+          expected_tree = os.environ['EXPECTED_RUNTIME_SOURCE_TREE']
+          expected_files = int(os.environ['EXPECTED_RUNTIME_SOURCE_FILES'])
+          evidence = {'file_count': len(files), 'tree_sha256': tree, 'expected_tree_sha256': expected_tree, 'match': tree == expected_tree and len(files) == expected_files}
+          Path('_project/SOURCE_IDENTITY.json').write_text(json.dumps(evidence, indent=2, sort_keys=True) + '\n')
+          print(f'SOURCE_ARTIFACT_IDENTITY tree={tree} files={len(files)}')
+          if len(files) != expected_files or tree != expected_tree:
+              raise SystemExit('SOURCE_ARTIFACT_IDENTITY_MISMATCH')
+          print('SOURCE_ARTIFACT_IDENTITY_PASS')
+          PY
+          grep -F 'config/version="0.53.35"' _project/project.godot
+          grep -F 'version/code=88' _project/export_presets.cfg
+
+      - name: Package deterministic project artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          find _project -type f -print0 | sort -z | xargs -0 touch -d '@0'
+          tar --sort=name --mtime='@0' --owner=0 --group=0 --numeric-owner -czf "hayat-tounes-v${VERSION_NAME}-verified-project.tar.gz" _project
+          sha256sum "hayat-tounes-v${VERSION_NAME}-verified-project.tar.gz" | tee "hayat-tounes-v${VERSION_NAME}-verified-project.tar.gz.sha256"
+
+      - name: Upload verified project artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: hayat-tounes-v0.53.35-verified-project
+          if-no-files-found: error
+          retention-days: 14
+          path: |
+            hayat-tounes-v0.53.35-verified-project.tar.gz
+            hayat-tounes-v0.53.35-verified-project.tar.gz.sha256
