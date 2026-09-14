@@ -6,19 +6,19 @@
   "package_id": "com.amir.hayattounes",
   "verified_runtime_source": {
     "status": "verified",
-    "workflow_run_id": 34896777244,
-    "source_commit": "271ad0798c887ca2d1de1e4024fdfae8ca799692",
-    "runtime_source_file_count": 95,
-    "runtime_source_tree_sha256": "31ab8f4ee16643a3842d70af39863a4079f00325048b42418a0bbefa81f0d006",
+    "workflow_run_id": 34897209313,
+    "runtime_source_commit": "a33d9b6687358758235ddb3e8dad075915e5139d",
+    "identity_lock_commit": "4db940131b93e15d6ee96bde6e8541676c93df8e",
+    "runtime_source_file_count": 97,
+    "runtime_source_tree_sha256": "925fd613e8a1a75b1f7f22ed811e7aa112912843ed732c1e14dac1daf194187b",
     "algorithm": "sha256-path-digest-size-v1"
   },
   "last_verified_android_rc": {
     "version_name": "0.53.35",
     "version_code": 88,
-    "source_commit": "5a7f6ef9eeb65b0cfa0a1e7de7aa1a505c7b5d34",
-    "runtime_source_identity_commit": "271ad0798c887ca2d1de1e4024fdfae8ca799692",
-    "workflow_run_id": 34896744422,
-    "artifact_id": 10368562504,
+    "source_commit": "a33d9b6687358758235ddb3e8dad075915e5139d",
+    "workflow_run_id": 34897145165,
+    "artifact_id": 10369690267,
     "status": "success",
     "godot": "4.7.2.stable.official.ed1daf0bf",
     "parser_import": "pass",
@@ -29,9 +29,10 @@
     "bourguiba_blockout_gate": "pass",
     "bourguiba_generated_geometry": 434,
     "bourguiba_required_nodes": 12,
-    "bourguiba_environment_generated": 728,
+    "bourguiba_environment_generated": 780,
     "osm_buildings": 146,
     "osm_roads": 191,
+    "osm_runtime_children": 1216,
     "osm_graph_nodes": 827,
     "osm_graph_edges": 924,
     "osm_largest_component": 741,
@@ -44,15 +45,15 @@
     "signature_v2": true,
     "signature_v3": true,
     "zipalign": "pass",
-    "apk_sha256": "2b1e75c58debcd8a049a0b127a13965a64fb4685e4c4fc412432f00f7d9702ef",
-    "artifact_zip_sha256": "0c3fd34ddf7fbf928e50ca657c6f7ef76eedc73fb893d218370d8a5fe5be2d7a"
+    "apk_sha256": "3224a88763998c85d21a823625828477ce9f01b5eb3b3ccd8b058f8b809e7a3d",
+    "artifact_zip_sha256": "85760e7b3a684e3e6e0dcf533a6f34fc5903167749aaeac284c3c11d969bac29"
   },
   "physical_android_acceptance": {
     "status": "not_verified",
     "harness": "tools/android/device_acceptance.py",
     "harness_contract_test": "pass",
     "harness_ci_run_id": 34883776560,
-    "required_apk_sha256": "2b1e75c58debcd8a049a0b127a13965a64fb4685e4c4fc412432f00f7d9702ef",
+    "required_apk_sha256": "3224a88763998c85d21a823625828477ce9f01b5eb3b3ccd8b058f8b809e7a3d",
     "required_evidence": [
       "device-acceptance.json",
       "launch.png",
@@ -64,10 +65,11 @@
   "visual_readiness": {
     "real_osm": true,
     "real_osm_runtime_verified": true,
+    "pbr_facade_pass_verified": true,
     "real_player_asset": false,
     "real_vehicle_count": 0,
     "visual_milestone_pass": false
   },
   "final_release": false,
-  "next_locked_task": "Run physical Android device acceptance against the exact APK SHA-256 2b1e75c58debcd8a049a0b127a13965a64fb4685e4c4fc412432f00f7d9702ef and capture device-acceptance.json, launch.png, logcat, gfxinfo framestats and meminfo. Do not claim visual realism or final release until their independent evidence gates pass."
+  "next_locked_task": "Run physical Android device acceptance against exact APK SHA-256 3224a88763998c85d21a823625828477ce9f01b5eb3b3ccd8b058f8b809e7a3d and capture device-acceptance.json, launch.png, logcat.txt, gfxinfo-framestats.txt and meminfo.txt. Keep visual realism and final release unclaimed until their independent evidence gates pass."
 }
