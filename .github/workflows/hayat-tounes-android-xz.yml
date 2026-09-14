@@ -2,6 +2,8 @@ name: Hayat Tounes Android RC
 
 on:
   workflow_dispatch:
+  schedule:
+    - cron: '0 1 * * *'
   push:
     branches: [ main ]
     paths:
