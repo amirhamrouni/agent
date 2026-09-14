@@ -1,0 +1,38 @@
+{
+  "build_report": "V091",
+  "project": "Hayat Tounes",
+  "version_name": "0.53.35",
+  "version_code": 88,
+  "runtime_source_changed": false,
+  "android_rc_rebuilt": false,
+  "locked_task": "physical_android_acceptance",
+  "engineering_changes": [
+    "physical acceptance evidence schema upgraded from 2 to 3",
+    "raw device serial replaced by SHA-256",
+    "raw build fingerprint replaced by SHA-256",
+    "each captured evidence file receives SHA-256 and byte size metadata",
+    "acceptance binding SHA-256 ties package, APK hash, version identity and device serial hash",
+    "independent fail-closed evidence verifier added",
+    "tamper detection contract added to CI"
+  ],
+  "verification": {
+    "local_python_compile": "pass",
+    "local_fake_physical_device_contract": "pass",
+    "local_tamper_detection": "pass",
+    "local_emulator_rejection": "pass",
+    "ci_contract_run_id": 34902044044,
+    "ci_contract_status": "success"
+  },
+  "preserved_verified_android_rc": {
+    "version_name": "0.53.35",
+    "version_code": 88,
+    "apk_sha256": "3224a88763998c85d21a823625828477ce9f01b5eb3b3ccd8b058f8b809e7a3d",
+    "workflow_run_id": 34897145165
+  },
+  "unverified": [
+    "physical Android execution",
+    "physical-device performance acceptance",
+    "visual milestone",
+    "final release"
+  ]
+}
