@@ -1,0 +1,138 @@
+name: Hayat Tounes Bourguiba Material Gate
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+    paths:
+      - 'raw_source_packs/**'
+      - 'source_overlay/**'
+      - 'source_overlay_packs/**'
+      - '.github/workflows/hayat-bourguiba-material-gate.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hayat-bourguiba-material-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  material-runtime-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      GODOT_VERSION: '4.7.2'
+      GODOT_CHANNEL: 'stable'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Reconstruct current source and overlays
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          out = Path('_project')
+          out.mkdir(parents=True, exist_ok=True)
+
+          def apply_packs(folder: str, expected: int | None = None) -> None:
+              source = Path(folder)
+              packs = sorted(source.glob('*.jsonl'))
+              if expected is not None and len(packs) != expected:
+                  raise SystemExit(f'{folder}:EXPECTED_{expected}_PACKS_FOUND_{len(packs)}')
+              chunks = {}
+              for pack in packs:
+                  for lineno, raw in enumerate(pack.read_text(encoding='utf-8').splitlines(), 1):
+                      if not raw.strip():
+                          continue
+                      row = json.loads(raw)
+                      rel = str(row['path'])
+                      idx = int(row.get('index', 0))
+                      if rel.startswith('/') or '..' in Path(rel).parts:
+                          raise SystemExit(f'UNSAFE_PATH:{pack}:{lineno}:{rel}')
+                      chunks.setdefault(rel, {})[idx] = str(row['content'])
+              for rel, parts in chunks.items():
+                  indexes = sorted(parts)
+                  if indexes != list(range(len(indexes))):
+                      raise SystemExit(f'NON_CONTIGUOUS:{rel}:{indexes}')
+                  target = out / rel
+                  target.parent.mkdir(parents=True, exist_ok=True)
+                  target.write_text(''.join(parts[i] for i in indexes), encoding='utf-8')
+
+          apply_packs('raw_source_packs', 18)
+          apply_packs('source_overlay_packs', 5)
+          loose = Path('source_overlay')
+          if loose.is_dir():
+              for src in loose.rglob('*'):
+                  if src.is_file():
+                      rel = src.relative_to(loose)
+                      target = out / rel
+                      target.parent.mkdir(parents=True, exist_ok=True)
+                      target.write_bytes(src.read_bytes())
+
+          required = [
+              'project.godot',
+              'scripts/world/art/TunisFacadePass.gd',
+              'scripts/world/art/TunisMaterialLibrary.gd',
+              'shaders/tunis_plaster.gdshader',
+              'shaders/tunis_asphalt.gdshader',
+              'tools/tests/bourguiba_material_test.gd',
+          ]
+          missing = [p for p in required if not (out / p).is_file()]
+          if missing:
+              raise SystemExit('MISSING_REQUIRED:' + ','.join(missing))
+          print('MATERIAL_SOURCE_RECONSTRUCT_PASS')
+          PY
+
+      - name: Install exact Godot 4.7.2
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .godot-bin
+          curl -fL --retry 3 "https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}-${GODOT_CHANNEL}/Godot_v${GODOT_VERSION}-${GODOT_CHANNEL}_linux.x86_64.zip" -o /tmp/godot.zip
+          echo 'cadd3204e728a35d3f13adb7fd0d7902636b79f6b95c40c265eb73b6c35329e4  /tmp/godot.zip' | sha256sum -c -
+          unzip -q /tmp/godot.zip -d .godot-bin
+          GODOT_BIN="$GITHUB_WORKSPACE/.godot-bin/Godot_v${GODOT_VERSION}-${GODOT_CHANNEL}_linux.x86_64"
+          chmod +x "$GODOT_BIN"
+          echo "GODOT_BIN=$GODOT_BIN" >> "$GITHUB_ENV"
+          "$GODOT_BIN" --version | tee godot-version.txt
+          grep -F '4.7.2.stable.official.ed1daf0' godot-version.txt
+
+      - name: Strict import parser gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd _project
+          "$GODOT_BIN" --headless --editor --path . --quit-after 2 2>&1 | tee ../material-import.log
+          cd ..
+          if grep -E 'SCRIPT ERROR:|Parse Error:|Failed to load script|Node not found:' material-import.log; then
+            exit 71
+          fi
+          echo MATERIAL_IMPORT_GATE_PASS
+
+      - name: Bourguiba PBR material runtime gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd _project
+          "$GODOT_BIN" --headless --path . --script res://tools/tests/bourguiba_material_test.gd 2>&1 | tee ../bourguiba-material.log
+          cd ..
+          grep -F 'BOURGUIBA_MATERIAL_GATE_PASS' bourguiba-material.log
+          if grep -E 'SCRIPT ERROR:|Parse Error:|Failed to load script|BOURGUIBA_MATERIAL_.*INVALID|BOURGUIBA_MATERIAL_.*MISSING|BOURGUIBA_MATERIAL_.*FORBIDDEN|BOURGUIBA_MATERIAL_.*EXCEEDED|BOURGUIBA_MATERIAL_.*MISMATCH' bourguiba-material.log; then
+            exit 72
+          fi
+
+      - name: Upload material evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hayat-tounes-bourguiba-material-${{ github.run_id }}
+          if-no-files-found: error
+          retention-days: 14
+          path: |
+            godot-version.txt
+            material-import.log
+            bourguiba-material.log
