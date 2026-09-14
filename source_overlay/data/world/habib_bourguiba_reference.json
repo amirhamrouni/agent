@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "scope_id": "tunis-habib-bourguiba-central-slice",
+  "status": "reference_control_points_only",
+  "coordinate_system": "WGS84",
+  "units": "degrees",
+  "accessed_utc": "2026-09-14",
+  "license": {
+    "osm_data": "ODbL-1.0",
+    "attribution": "© OpenStreetMap contributors",
+    "license_url": "https://www.openstreetmap.org/copyright"
+  },
+  "control_points": [
+    {
+      "id": "cathedral_st_vincent_de_paul",
+      "name": "Cathedral of Saint Vincent de Paul",
+      "latitude": 36.80011,
+      "longitude": 10.17892,
+      "osm_type": "way",
+      "osm_id": 100080986,
+      "canonical_osm_url": "https://www.openstreetmap.org/way/100080986",
+      "evidence_url": "https://mapcarta.com/W100080986",
+      "evidence_basis": "OpenStreetMap-derived coordinates and OSM object id"
+    },
+    {
+      "id": "theatre_municipal",
+      "name": "Théâtre municipal de Tunis",
+      "latitude": 36.79913,
+      "longitude": 10.18081,
+      "height_m": 23.0,
+      "osm_type": "way",
+      "osm_id": 95130030,
+      "canonical_osm_url": "https://www.openstreetmap.org/way/95130030",
+      "evidence_url": "https://mapcarta.com/36387228",
+      "evidence_basis": "OpenStreetMap-derived coordinates, OSM object id, and mapped height"
+    },
+    {
+      "id": "clock_tower",
+      "name": "The Clock Tower",
+      "latitude": 36.80025,
+      "longitude": 10.18620,
+      "osm_type": "node",
+      "osm_id": 5533914655,
+      "canonical_osm_url": "https://www.openstreetmap.org/node/5533914655",
+      "evidence_url": "https://mapcarta.com/N5533914655",
+      "evidence_basis": "OpenStreetMap-derived coordinates and OSM object id"
+    }
+  ],
+  "reference_notes": [
+    "This file records verified geographic control points only; it is not a complete OSM street extract.",
+    "Procedural road width, median width, sidewalks, intersections and gameplay transforms remain provisional until a bounded OSM extract or equivalent authoritative geometry is installed and validated.",
+    "No acceptance gate may set real_osm=true solely because this control-point manifest exists."
+  ]
+}
