@@ -46,10 +46,7 @@ func _initialize() -> void:
         quit(66)
         return
 
-    var visual_count := 0
-    for child in taxi.get_children():
-        if child is MeshInstance3D:
-            visual_count += 1
+    var visual_count := _count_meshes_recursive(taxi)
     if visual_count < 14:
         push_error("BOURGUIBA_TAXI_GEOMETRY_TOO_LOW:%d" % visual_count)
         quit(67)
@@ -57,3 +54,9 @@ func _initialize() -> void:
 
     print("BOURGUIBA_TAXI_VISUAL_GATE_PASS resolved=%s meshes=%d yellow=%s" % [resolved, visual_count, yellow])
     quit(0)
+
+func _count_meshes_recursive(node: Node) -> int:
+    var count := 1 if node is MeshInstance3D else 0
+    for child in node.get_children():
+        count += _count_meshes_recursive(child)
+    return count
