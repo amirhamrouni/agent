@@ -18,8 +18,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
-      EXPECTED_RUNTIME_SOURCE_TREE: '32e653f7d967606b889f3ba0f795d535d8b11465a9742e8c2691c116fde7f698'
-      EXPECTED_RUNTIME_SOURCE_FILES: '164'
+      # Pinned to the currently reconstructed runtime/export source after the
+      # Habib Bourguiba public-realm overlay. Any byte-level source change must
+      # intentionally update both values from fresh CI evidence.
+      EXPECTED_RUNTIME_SOURCE_TREE: '8955d2cd5ea4cf235b7e83a7a58c706a21ea3847340cc7ac5c4bee23053fbf20'
+      EXPECTED_RUNTIME_SOURCE_FILES: '89'
     steps:
       - uses: actions/checkout@v4
 
