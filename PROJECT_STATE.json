@@ -11,17 +11,34 @@
     "identity_status": "success"
   },
   "android_rc": {
-    "source_commit": "7d024d67229f2fb0f029a9d47fa4b1dec14035de",
-    "workflow_run_id": 34877890020,
+    "source_commit": "658700c6e1fb0cba295bec7289f47793aa8f8c01",
+    "workflow_run_id": 34879709859,
     "status": "success",
     "godot": "4.7.2.stable.official.ed1daf0bf",
     "parser_import": "pass",
+    "bourguiba_blockout_gate": "pass",
+    "bourguiba_generated_geometry": 434,
+    "bourguiba_required_nodes": 12,
     "runtime_smoke": "pass",
     "android_export": "pass",
     "signature_v2": true,
     "signature_v3": true,
     "zipalign": "pass",
-    "apk_sha256": "37f37ef13bb7b15f6d6a590677141f2740785079c0c3335bb12ebcaff5d83f24"
+    "apk_sha256": "398c34f3e2d26294b01beaa29e9192727c712c1fbf11e1e28e14ac78db2c5add",
+    "apk_size_bytes": 28564788
+  },
+  "physical_android_acceptance": {
+    "status": "not_verified",
+    "harness": "tools/android/device_acceptance.py",
+    "harness_contract_test": "pass",
+    "harness_ci_run_id": 34883776560,
+    "required_evidence": [
+      "device-acceptance.json",
+      "launch.png",
+      "logcat.txt",
+      "gfxinfo-framestats.txt",
+      "meminfo.txt"
+    ]
   },
   "visual_readiness": {
     "real_osm": false,
@@ -29,7 +46,6 @@
     "real_vehicle_count": 0,
     "visual_milestone_pass": false
   },
-  "physical_android_acceptance": "not_verified",
   "final_release": false,
-  "next_locked_task": "Physical Android device acceptance for the verified RC, followed by real-world asset/provenance work without claiming visual realism before evidence."
+  "next_locked_task": "Run the verified APK through the physical Android device acceptance harness and preserve PASS evidence. After device acceptance, continue real-world asset/provenance work without claiming visual realism before evidence."
 }
