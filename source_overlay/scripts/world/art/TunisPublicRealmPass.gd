@@ -83,12 +83,12 @@ func _build_lane_markings() -> void:
 
 func _build_crosswalks() -> void:
     var root := Node3D.new(); root.name = "BourguibaCrosswalks"; add_child(root)
-    for crossing_x in [-54.0, 0.0, 54.0]:
+    for crossing_x: float in [-54.0, 0.0, 54.0]:
         for stripe in range(9):
-            var x := crossing_x - 3.2 + float(stripe) * 0.8
-            _box(root, Vector3(x, 0.091, -4.6), Vector3(0.42, 0.02, 5.4), Color("#e8e5da"), 0.82)
-            _box(root, Vector3(x, 0.091, 4.6), Vector3(0.42, 0.02, 5.4), Color("#e8e5da"), 0.82)
-        for z in [-7.7, 7.7]:
+            var stripe_x: float = crossing_x - 3.2 + float(stripe) * 0.8
+            _box(root, Vector3(stripe_x, 0.091, -4.6), Vector3(0.42, 0.02, 5.4), Color("#e8e5da"), 0.82)
+            _box(root, Vector3(stripe_x, 0.091, 4.6), Vector3(0.42, 0.02, 5.4), Color("#e8e5da"), 0.82)
+        for z: float in [-7.7, 7.7]:
             _register_detail(_box(root, Vector3(crossing_x, 0.235, z), Vector3(7.4, 0.08, 1.15), Color("#b9b09f"), 0.96), 1)
 
 func _build_bourguiba_curbs() -> void:
