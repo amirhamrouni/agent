@@ -1,0 +1,120 @@
+[gd_scene load_steps=9 format=3]
+
+[sub_resource type="StandardMaterial3D" id="Yellow"]
+albedo_color = Color(0.93, 0.72, 0.03, 1)
+roughness = 0.48
+metallic = 0.05
+
+[sub_resource type="StandardMaterial3D" id="Black"]
+albedo_color = Color(0.035, 0.035, 0.04, 1)
+roughness = 0.62
+metallic = 0.08
+
+[sub_resource type="StandardMaterial3D" id="Glass"]
+albedo_color = Color(0.08, 0.12, 0.15, 0.82)
+transparency = 1
+roughness = 0.18
+metallic = 0.12
+
+[sub_resource type="StandardMaterial3D" id="White"]
+albedo_color = Color(0.92, 0.92, 0.86, 1)
+roughness = 0.55
+
+[sub_resource type="BoxMesh" id="BodyMesh"]
+size = Vector3(1.86, 0.58, 4.18)
+
+[sub_resource type="BoxMesh" id="CabinMesh"]
+size = Vector3(1.66, 0.72, 2.08)
+
+[sub_resource type="CylinderMesh" id="WheelMesh"]
+top_radius = 0.34
+bottom_radius = 0.34
+height = 0.22
+radial_segments = 16
+
+[sub_resource type="BoxMesh" id="DetailMesh"]
+size = Vector3(1, 1, 1)
+
+[node name="TunisTaxi" type="Node3D" groups=["tunis_taxi_visual", "licensed_internal_asset"]]
+
+[node name="Body" type="MeshInstance3D" parent="."]
+position = Vector3(0, 0.72, 0)
+mesh = SubResource("BodyMesh")
+material_override = SubResource("Yellow")
+
+[node name="Cabin" type="MeshInstance3D" parent="."]
+position = Vector3(0, 1.28, -0.18)
+mesh = SubResource("CabinMesh")
+material_override = SubResource("Yellow")
+
+[node name="Windshield" type="MeshInstance3D" parent="."]
+position = Vector3(0, 1.36, -1.245)
+scale = Vector3(1.48, 0.54, 0.035)
+mesh = SubResource("DetailMesh")
+material_override = SubResource("Glass")
+
+[node name="RearWindow" type="MeshInstance3D" parent="."]
+position = Vector3(0, 1.36, 0.865)
+scale = Vector3(1.48, 0.54, 0.035)
+mesh = SubResource("DetailMesh")
+material_override = SubResource("Glass")
+
+[node name="BlackSideStripeLeft" type="MeshInstance3D" parent="."]
+position = Vector3(-0.945, 0.76, 0)
+scale = Vector3(0.025, 0.16, 3.35)
+mesh = SubResource("DetailMesh")
+material_override = SubResource("Black")
+
+[node name="BlackSideStripeRight" type="MeshInstance3D" parent="."]
+position = Vector3(0.945, 0.76, 0)
+scale = Vector3(0.025, 0.16, 3.35)
+mesh = SubResource("DetailMesh")
+material_override = SubResource("Black")
+
+[node name="TaxiRoofSign" type="MeshInstance3D" parent="." groups=["taxi_identifier"]]
+position = Vector3(0, 1.74, -0.12)
+scale = Vector3(0.72, 0.22, 0.34)
+mesh = SubResource("DetailMesh")
+material_override = SubResource("White")
+
+[node name="TaxiRoofSignBand" type="MeshInstance3D" parent="TaxiRoofSign"]
+position = Vector3(0, 0, -0.52)
+scale = Vector3(0.9, 0.55, 0.08)
+mesh = SubResource("DetailMesh")
+material_override = SubResource("Black")
+
+[node name="FrontPlate" type="MeshInstance3D" parent="."]
+position = Vector3(0, 0.62, -2.115)
+scale = Vector3(0.52, 0.16, 0.035)
+mesh = SubResource("DetailMesh")
+material_override = SubResource("Black")
+
+[node name="RearPlate" type="MeshInstance3D" parent="."]
+position = Vector3(0, 0.62, 2.115)
+scale = Vector3(0.52, 0.16, 0.035)
+mesh = SubResource("DetailMesh")
+material_override = SubResource("Black")
+
+[node name="WheelFL" type="MeshInstance3D" parent="."]
+position = Vector3(-0.97, 0.44, -1.36)
+rotation_degrees = Vector3(0, 0, 90)
+mesh = SubResource("WheelMesh")
+material_override = SubResource("Black")
+
+[node name="WheelFR" type="MeshInstance3D" parent="."]
+position = Vector3(0.97, 0.44, -1.36)
+rotation_degrees = Vector3(0, 0, 90)
+mesh = SubResource("WheelMesh")
+material_override = SubResource("Black")
+
+[node name="WheelRL" type="MeshInstance3D" parent="."]
+position = Vector3(-0.97, 0.44, 1.36)
+rotation_degrees = Vector3(0, 0, 90)
+mesh = SubResource("WheelMesh")
+material_override = SubResource("Black")
+
+[node name="WheelRR" type="MeshInstance3D" parent="."]
+position = Vector3(0.97, 0.44, 1.36)
+rotation_degrees = Vector3(0, 0, 90)
+mesh = SubResource("WheelMesh")
+material_override = SubResource("Black")
