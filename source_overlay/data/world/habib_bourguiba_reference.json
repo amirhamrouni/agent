@@ -1,7 +1,7 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "scope_id": "tunis-habib-bourguiba-central-slice",
-  "status": "reference_control_points_only",
+  "status": "bounded_osm_snapshot_installed",
   "coordinate_system": "WGS84",
   "units": "degrees",
   "accessed_utc": "2026-09-14",
@@ -9,6 +9,27 @@
     "osm_data": "ODbL-1.0",
     "attribution": "© OpenStreetMap contributors",
     "license_url": "https://www.openstreetmap.org/copyright"
+  },
+  "snapshot": {
+    "source": "OpenStreetMap API 0.6 map.json",
+    "source_url": "https://api.openstreetmap.org/api/0.6/map.json?bbox=10.1775,36.7975,10.1875,36.8025",
+    "bbox_wgs84": [10.1775, 36.7975, 10.1875, 36.8025],
+    "raw_path": "res://data/world/habib_bourguiba_osm.json",
+    "raw_sha256": "df5f84e54bdb5a0bfff61a4744e22a5d89b0ede776f75a578f4b3a1afdc06cf8",
+    "raw_element_counts": {
+      "nodes": 3126,
+      "ways": 504,
+      "relations": 66
+    },
+    "processed_path": "res://data/osm/tunis_bourguiba_processed.json",
+    "processed_sha256": "acd94f9f592719ca017adb70a70ad2d815d8dc813f52e36ec5d30297b60d90a9",
+    "processed_counts": {
+      "buildings": 146,
+      "roads": 191,
+      "graph_nodes": 827,
+      "graph_edges": 924
+    },
+    "projection": "local_equirectangular"
   },
   "control_points": [
     {
@@ -47,8 +68,8 @@
     }
   ],
   "reference_notes": [
-    "This file records verified geographic control points only; it is not a complete OSM street extract.",
-    "Procedural road width, median width, sidewalks, intersections and gameplay transforms remain provisional until a bounded OSM extract or equivalent authoritative geometry is installed and validated.",
-    "No acceptance gate may set real_osm=true solely because this control-point manifest exists."
+    "A bounded OpenStreetMap snapshot is installed with explicit ODbL provenance and deterministic SHA linkage.",
+    "The runtime processed map is generated deterministically from the bounded snapshot and validated for schema, counts, projection and source SHA linkage.",
+    "Real-map runtime acceptance still requires the Godot 4.7.2 runtime gate to confirm OsmWorldLoader loads this processed map successfully; this manifest alone is not runtime proof."
   ]
 }
