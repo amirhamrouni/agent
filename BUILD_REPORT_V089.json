@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "project": "Hayat Tounes",
+  "version_name": "0.53.35",
+  "version_code": 88,
+  "package_id": "com.amir.hayattounes",
+  "runtime_identity": {
+    "workflow_run_id": 34896777244,
+    "status": "pass",
+    "file_count": 95,
+    "tree_sha256": "31ab8f4ee16643a3842d70af39863a4079f00325048b42418a0bbefa81f0d006",
+    "algorithm": "sha256-path-digest-size-v1"
+  },
+  "android_rc": {
+    "workflow_run_id": 34896744422,
+    "artifact_id": 10368562504,
+    "status": "pass",
+    "godot_version": "4.7.2.stable.official.ed1daf0bf",
+    "parser_import": "pass",
+    "reference_gate": "pass",
+    "environment_gate": "pass",
+    "osm_runtime_gate": "pass",
+    "navigation_gate": "pass",
+    "blockout_gate": "pass",
+    "runtime_smoke": "pass",
+    "android_export": "pass",
+    "signature_v2": true,
+    "signature_v3": true,
+    "zipalign": "pass",
+    "apk_sha256": "2b1e75c58debcd8a049a0b127a13965a64fb4685e4c4fc412432f00f7d9702ef",
+    "artifact_zip_sha256": "0c3fd34ddf7fbf928e50ca657c6f7ef76eedc73fb893d218370d8a5fe5be2d7a"
+  },
+  "bourguiba_evidence": {
+    "environment_generated": 728,
+    "osm_buildings": 146,
+    "osm_roads": 191,
+    "osm_runtime_children": 1216,
+    "navigation_nodes": 827,
+    "navigation_edges": 924,
+    "largest_component": 741,
+    "connectivity_ratio": 0.896,
+    "navigation_span_m": 3253.0,
+    "blockout_generated": 434,
+    "required_nodes": 12,
+    "real_osm": true
+  },
+  "remaining": {
+    "physical_android_acceptance": "not_verified",
+    "real_player_asset": false,
+    "real_vehicle_count": 0,
+    "visual_milestone_pass": false,
+    "visual_realism_claimed": false,
+    "final_release": false
+  }
+}
