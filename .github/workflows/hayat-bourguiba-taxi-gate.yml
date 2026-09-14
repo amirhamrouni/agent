@@ -1,0 +1,101 @@
+name: Hayat Tounes Bourguiba Taxi Gate
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+    paths:
+      - 'source_overlay/assets/vertical_slice/tunis_taxi.tscn'
+      - 'source_overlay/scripts/vehicles/visuals/VehicleVisualCatalog.gd'
+      - 'source_overlay/tools/tests/bourguiba_taxi_visual_test.gd'
+      - '.github/workflows/hayat-bourguiba-taxi-gate.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  taxi-runtime-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      GODOT_VERSION: '4.7.2'
+      GODOT_CHANNEL: 'stable'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Reconstruct current runtime source
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          out = Path('_project'); out.mkdir(parents=True, exist_ok=True)
+          def apply(folder):
+              chunks = {}
+              for pack in sorted(Path(folder).glob('*.jsonl')):
+                  for raw in pack.read_text(encoding='utf-8').splitlines():
+                      if not raw.strip(): continue
+                      row = json.loads(raw); rel = str(row['path']); idx = int(row.get('index', 0))
+                      if rel.startswith('/') or '..' in Path(rel).parts: raise SystemExit('UNSAFE_PATH:'+rel)
+                      chunks.setdefault(rel, {})[idx] = str(row['content'])
+              for rel, parts in chunks.items():
+                  indexes = sorted(parts)
+                  if indexes != list(range(len(indexes))): raise SystemExit('NON_CONTIGUOUS:'+rel)
+                  target = out / rel; target.parent.mkdir(parents=True, exist_ok=True)
+                  target.write_text(''.join(parts[i] for i in indexes), encoding='utf-8')
+          apply('raw_source_packs'); apply('source_overlay_packs')
+          loose = Path('source_overlay')
+          if loose.is_dir():
+              for src in loose.rglob('*'):
+                  if src.is_file():
+                      target = out / src.relative_to(loose); target.parent.mkdir(parents=True, exist_ok=True); target.write_bytes(src.read_bytes())
+          for req in ['assets/vertical_slice/tunis_taxi.tscn','scripts/vehicles/visuals/VehicleVisualCatalog.gd','tools/tests/bourguiba_taxi_visual_test.gd']:
+              if not (out/req).is_file(): raise SystemExit('MISSING_REQUIRED:'+req)
+          print('TAXI_RECONSTRUCT_PASS')
+          PY
+
+      - name: Install exact Godot 4.7.2
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .godot-bin
+          curl -fL --retry 3 "https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}-${GODOT_CHANNEL}/Godot_v${GODOT_VERSION}-${GODOT_CHANNEL}_linux.x86_64.zip" -o /tmp/godot.zip
+          echo 'cadd3204e728a35d3f13adb7fd0d7902636b79f6b95c40c265eb73b6c35329e4  /tmp/godot.zip' | sha256sum -c -
+          unzip -q /tmp/godot.zip -d .godot-bin
+          GODOT_BIN="$GITHUB_WORKSPACE/.godot-bin/Godot_v${GODOT_VERSION}-${GODOT_CHANNEL}_linux.x86_64"
+          chmod +x "$GODOT_BIN"
+          echo "GODOT_BIN=$GODOT_BIN" >> "$GITHUB_ENV"
+          "$GODOT_BIN" --version | tee godot-version.txt
+          grep -F '4.7.2.stable.official.ed1daf0' godot-version.txt
+
+      - name: Import and parser gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd _project
+          "$GODOT_BIN" --headless --editor --path . --quit-after 2 2>&1 | tee ../taxi-import.log
+          cd ..
+          if grep -E 'SCRIPT ERROR:|Parse Error:|Failed to load script|Failed loading resource' taxi-import.log; then exit 71; fi
+
+      - name: Tunis taxi runtime visual gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd _project
+          "$GODOT_BIN" --headless --path . --script res://tools/tests/bourguiba_taxi_visual_test.gd 2>&1 | tee ../taxi-runtime.log
+          cd ..
+          grep -F 'BOURGUIBA_TAXI_VISUAL_GATE_PASS' taxi-runtime.log
+          if grep -E 'SCRIPT ERROR:|Parse Error:|BOURGUIBA_TAXI_.*FAILED|BOURGUIBA_TAXI_.*MISSING|BOURGUIBA_TAXI_.*INVALID|BOURGUIBA_TAXI_GEOMETRY_TOO_LOW' taxi-runtime.log; then exit 72; fi
+
+      - name: Upload taxi gate evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bourguiba-taxi-gate-${{ github.run_id }}
+          if-no-files-found: error
+          retention-days: 14
+          path: |
+            godot-version.txt
+            taxi-import.log
+            taxi-runtime.log
