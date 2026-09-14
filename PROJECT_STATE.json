@@ -66,15 +66,23 @@
   "physical_android_acceptance": {
     "status": "not_verified",
     "harness": "tools/android/device_acceptance.py",
+    "harness_schema_version": 2,
     "harness_contract_test": "pass",
-    "harness_ci_run_id": 34883776560,
+    "harness_ci_run_id": 34898618333,
+    "physical_device_only": true,
+    "emulator_rejection": "enforced",
+    "installed_version_identity": "enforced",
+    "expected_version_name": "0.53.35",
+    "expected_version_code": 88,
     "required_apk_sha256": "3224a88763998c85d21a823625828477ce9f01b5eb3b3ccd8b058f8b809e7a3d",
     "required_evidence": [
       "device-acceptance.json",
       "launch.png",
       "logcat.txt",
       "gfxinfo-framestats.txt",
-      "meminfo.txt"
+      "meminfo.txt",
+      "package-dump.txt",
+      "thermalservice.txt"
     ]
   },
   "visual_readiness": {
@@ -86,5 +94,5 @@
     "visual_milestone_pass": false
   },
   "final_release": false,
-  "next_locked_task": "Run physical Android device acceptance against exact APK SHA-256 3224a88763998c85d21a823625828477ce9f01b5eb3b3ccd8b058f8b809e7a3d and capture device-acceptance.json, launch.png, logcat.txt, gfxinfo-framestats.txt and meminfo.txt. Keep visual realism and final release unclaimed until their independent evidence gates pass."
+  "next_locked_task": "Run schema-v2 physical Android acceptance on a real non-emulated device against exact APK SHA-256 3224a88763998c85d21a823625828477ce9f01b5eb3b3ccd8b058f8b809e7a3d, verify installed versionName 0.53.35 and versionCode 88, and capture device-acceptance.json, launch.png, logcat.txt, gfxinfo-framestats.txt, meminfo.txt, package-dump.txt and thermalservice.txt. Keep visual realism and final release unclaimed until their independent evidence gates pass."
 }
