@@ -1,0 +1,76 @@
+name: Hayat Tounes Habib Bourguiba OSM Acquire
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+    paths:
+      - '.github/workflows/hayat-osm-acquire.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  acquire-osm:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Download bounded OpenStreetMap snapshot
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p source_overlay/data/world
+          BBOX='10.1775,36.7975,10.1875,36.8025'
+          URL="https://api.openstreetmap.org/api/0.6/map.json?bbox=${BBOX}"
+          curl --fail --silent --show-error --location \
+            --retry 4 --retry-delay 3 \
+            -H 'User-Agent: Hayat-Tounes/0.53 (+https://github.com/amirhamrouni/agent)' \
+            "$URL" \
+            -o source_overlay/data/world/habib_bourguiba_osm.json
+          python3 - <<'PY'
+          import hashlib, json
+          from pathlib import Path
+          data_path = Path('source_overlay/data/world/habib_bourguiba_osm.json')
+          raw = data_path.read_bytes()
+          doc = json.loads(raw)
+          elements = doc.get('elements', [])
+          nodes = sum(1 for x in elements if x.get('type') == 'node')
+          ways = sum(1 for x in elements if x.get('type') == 'way')
+          relations = sum(1 for x in elements if x.get('type') == 'relation')
+          if nodes < 20 or ways < 5:
+              raise SystemExit(f'OSM_SNAPSHOT_TOO_SMALL nodes={nodes} ways={ways}')
+          provenance = {
+              'schema_version': 1,
+              'scope_id': 'tunis-habib-bourguiba-central-slice',
+              'source': 'OpenStreetMap API 0.6 map.json',
+              'source_url': 'https://api.openstreetmap.org/api/0.6/map.json?bbox=10.1775,36.7975,10.1875,36.8025',
+              'bbox_wgs84': [10.1775, 36.7975, 10.1875, 36.8025],
+              'license': 'ODbL-1.0',
+              'attribution': '© OpenStreetMap contributors',
+              'sha256': hashlib.sha256(raw).hexdigest(),
+              'size_bytes': len(raw),
+              'element_counts': {'nodes': nodes, 'ways': ways, 'relations': relations},
+          }
+          Path('source_overlay/data/world/habib_bourguiba_osm_provenance.json').write_text(
+              json.dumps(provenance, indent=2, sort_keys=True) + '\n', encoding='utf-8'
+          )
+          print(f'OSM_ACQUIRE_PASS nodes={nodes} ways={ways} relations={relations} sha256={provenance["sha256"]}')
+          PY
+
+      - name: Commit deterministic OSM snapshot and provenance
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'hayat-tounes-ci'
+          git config user.email 'actions@users.noreply.github.com'
+          git add source_overlay/data/world/habib_bourguiba_osm.json source_overlay/data/world/habib_bourguiba_osm_provenance.json
+          if git diff --cached --quiet; then
+            echo 'OSM snapshot unchanged; nothing to commit.'
+            exit 0
+          fi
+          git commit -m 'data: install bounded Habib Bourguiba OSM snapshot'
+          git push origin HEAD:main
