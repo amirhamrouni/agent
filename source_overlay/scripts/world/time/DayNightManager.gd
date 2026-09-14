@@ -19,7 +19,7 @@ func _on_minute_changed(_day: int, _hour: int, _minute: int) -> void:
 func _apply_time_state() -> void:
     if world_clock == null or sun == null:
         return
-    var hours: float = float(world_clock.time_of_day_hours())
+    var hours: float = float(world_clock.current_hour()) + float(world_clock.current_minute()) / 60.0
     var daylight: float = clampf(sin(((hours - 6.0) / 12.0) * PI), 0.0, 1.0)
     sun.rotation_degrees.x = lerpf(-8.0, -62.0, daylight)
     sun.light_energy = lerpf(0.08, 1.25, daylight)
