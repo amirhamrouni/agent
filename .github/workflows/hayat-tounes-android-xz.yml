@@ -26,7 +26,7 @@ jobs:
       GODOT_CHANNEL: 'stable'
       ANDROID_HOME: ${{ github.workspace }}/.android-sdk
       ANDROID_SDK_ROOT: ${{ github.workspace }}/.android-sdk
-      APK_PATH: ${{ github.workspace }}/_project/build/android/hayat-tounes-v0.53.30-debug.apk
+      APK_PATH: ${{ github.workspace }}/_project/build/android/hayat-tounes-v0.53.34-debug.apk
 
     steps:
       - uses: actions/checkout@v4
@@ -70,13 +70,13 @@ jobs:
           base_count = apply_packs('raw_source_packs', 18)
           overlay_count = apply_packs('source_overlay_packs', 5)
 
-          loose_overlay = Path('source_overlay')
           loose_count = 0
-          if loose_overlay.is_dir():
-              for src in loose_overlay.rglob('*'):
+          loose = Path('source_overlay')
+          if loose.is_dir():
+              for src in loose.rglob('*'):
                   if not src.is_file():
                       continue
-                  rel = src.relative_to(loose_overlay)
+                  rel = src.relative_to(loose)
                   target = out / rel
                   target.parent.mkdir(parents=True, exist_ok=True)
                   target.write_bytes(src.read_bytes())
@@ -84,33 +84,23 @@ jobs:
 
           required = [
               'project.godot', 'export_presets.cfg', 'main_production.tscn',
-              'RELEASE_METADATA.json',
-              'autoload/GameState.gd', 'autoload/SaveService.gd',
+              'RELEASE_METADATA.json', 'autoload/GameState.gd', 'autoload/SaveService.gd',
               'autoload/RuntimeDiagnostics.gd', 'autoload/SettingsService.gd',
               'autoload/SessionGuard.gd', 'scripts/core/ProductionWorld.gd',
-              'scripts/world/time/WorldClock.gd',
-              'scripts/world/time/DayNightManager.gd',
-              'scripts/world/events/WorldEventScheduler.gd',
-              'scripts/world/osm/RoadGraph.gd',
-              'scripts/world/osm/OsmWorldLoader.gd',
-              'scripts/player/visuals/PlayerVisualFactory.gd',
-              'scripts/vehicles/visuals/VehicleVisualFactory.gd',
-              'scripts/world/art/TunisMaterialLibrary.gd',
-              'scripts/world/art/VisualReadinessGate.gd',
-              'shaders/tunis_plaster.gdshader',
-              'shaders/tunis_asphalt.gdshader'
+              'scripts/world/PopulationSpawner.gd', 'scripts/world/time/DayNightManager.gd',
+              'scripts/world/art/TunisResidentialLifePass.gd', 'scripts/ui/GameHUD.gd'
           ]
           missing = [p for p in required if not (out / p).is_file()]
           if missing:
               raise SystemExit('MISSING_REQUIRED:' + ','.join(missing))
-
-          gd = list(out.rglob('*.gd'))
-          if len(gd) < 60:
-              raise SystemExit(f'INSUFFICIENT_GDSCRIPT_COUNT:{len(gd)}')
-          print(f'RECONSTRUCT_PASS base={base_count} overlay_pack={overlay_count} loose={loose_count} gdscript={len(gd)}')
+          gd_count = len(list(out.rglob('*.gd')))
+          if gd_count < 60:
+              raise SystemExit(f'INSUFFICIENT_GDSCRIPT_COUNT:{gd_count}')
+          print(f'RECONSTRUCT_PASS base={base_count} overlay_pack={overlay_count} loose={loose_count} gdscript={gd_count}')
           PY
-          grep -F 'config/version="0.53.30"' _project/project.godot
-          grep -F 'version/code=83' _project/export_presets.cfg
+          grep -F 'config/version="0.53.34"' _project/project.godot
+          grep -F 'version/code=87' _project/export_presets.cfg
+          grep -F 'version/name="0.53.34"' _project/export_presets.cfg
           grep -F 'package/unique_name="com.amir.hayattounes"' _project/export_presets.cfg
 
       - name: Setup Java 17
@@ -143,7 +133,7 @@ jobs:
           chmod +x "$GODOT_BIN"
           echo "GODOT_BIN=$GODOT_BIN" >> "$GITHUB_ENV"
           "$GODOT_BIN" --version | tee /tmp/godot-version.txt
-          grep -F '4.7.2' /tmp/godot-version.txt
+          grep -F '4.7.2.stable.official.ed1daf0' /tmp/godot-version.txt
 
           curl -fL --retry 3 "https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}-${GODOT_CHANNEL}/Godot_v${GODOT_VERSION}-${GODOT_CHANNEL}_export_templates.tpz" -o /tmp/templates.tpz
           echo 'f298490b8d44d934be425a5a65a51bf15f422428b229a06a6e11d9ffea248011  /tmp/templates.tpz' | sha256sum -c -
@@ -194,7 +184,7 @@ jobs:
           set -euo pipefail
           cd _project
           mkdir -p build/android
-          "$GODOT_BIN" --headless --path . --export-debug 'Android Development' 'build/android/hayat-tounes-v0.53.30-debug.apk' 2>&1 | tee ../godot-export.log
+          "$GODOT_BIN" --headless --path . --export-debug 'Android Development' 'build/android/hayat-tounes-v0.53.34-debug.apk' 2>&1 | tee ../godot-export.log
           cd ..
           python3 - <<'PY'
           from pathlib import Path
@@ -214,18 +204,18 @@ jobs:
           set -euo pipefail
           "$ANDROID_HOME/build-tools/35.0.1/apksigner" verify --verbose --print-certs "$APK_PATH" | tee apk-signature.txt
           "$ANDROID_HOME/build-tools/35.0.1/zipalign" -c -P 16 -v 4 "$APK_PATH" | tee apk-zipalign.txt
-          sha256sum "$APK_PATH" | tee hayat-tounes-v0.53.30-debug.apk.sha256
+          sha256sum "$APK_PATH" | tee hayat-tounes-v0.53.34-debug.apk.sha256
           ls -lh "$APK_PATH"
 
       - name: Upload verified APK and runtime evidence
         uses: actions/upload-artifact@v4
         with:
-          name: hayat-tounes-v0.53.30-android-debug
+          name: hayat-tounes-v0.53.34-android-debug
           if-no-files-found: error
           retention-days: 14
           path: |
-            _project/build/android/hayat-tounes-v0.53.30-debug.apk
-            hayat-tounes-v0.53.30-debug.apk.sha256
+            _project/build/android/hayat-tounes-v0.53.34-debug.apk
+            hayat-tounes-v0.53.34-debug.apk.sha256
             apk-signature.txt
             apk-zipalign.txt
             godot-import.log
@@ -236,7 +226,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: hayat-tounes-v0.53.30-failure-diagnostics
+          name: hayat-tounes-v0.53.34-failure-diagnostics
           if-no-files-found: ignore
           retention-days: 7
           path: |
