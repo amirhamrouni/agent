@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "scope_id": "tunis-habib-bourguiba-central-slice",
+  "generated_in_project": true,
+  "external_visual_assets": [],
+  "positioning_reference": {
+    "source": "OpenStreetMap",
+    "license": "ODbL-1.0",
+    "attribution": "© OpenStreetMap contributors",
+    "reference_manifest": "res://data/world/habib_bourguiba_reference.json"
+  },
+  "environment_kit": {
+    "generator": "res://scripts/world/art/TunisFacadePass.gd",
+    "geometry": "Godot primitive meshes generated at runtime",
+    "materials": "StandardMaterial3D PBR-capable parameters; no external texture files",
+    "texture_budget_bytes": 0,
+    "signage": "Generic fictional Arabic/French labels; no third-party trademarks",
+    "lod_strategy": "detail levels 0-2 using medium_detail_nodes/high_detail_nodes visibility groups",
+    "target": "mobile"
+  },
+  "review_constraints": [
+    "No claim that procedural facades reproduce individual real buildings.",
+    "Real OSM geometry/provenance is handled by habib_bourguiba_reference.json.",
+    "Future external textures/models must be added to external_visual_assets with license and source before use."
+  ]
+}
