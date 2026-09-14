@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "project": "Hayat Tounes",
+  "version_name": "0.53.35",
+  "version_code": 88,
+  "package_id": "com.amir.hayattounes",
+  "runtime_identity": {
+    "workflow_run_id": 34897209313,
+    "status": "pass",
+    "runtime_source_commit": "a33d9b6687358758235ddb3e8dad075915e5139d",
+    "file_count": 97,
+    "tree_sha256": "925fd613e8a1a75b1f7f22ed811e7aa112912843ed732c1e14dac1daf194187b",
+    "algorithm": "sha256-path-digest-size-v1"
+  },
+  "android_rc": {
+    "workflow_run_id": 34897145165,
+    "artifact_id": 10369690267,
+    "status": "pass",
+    "godot_version": "4.7.2.stable.official.ed1daf0bf",
+    "parser_import": "pass",
+    "reference_gate": "pass",
+    "environment_gate": "pass",
+    "osm_runtime_gate": "pass",
+    "navigation_gate": "pass",
+    "blockout_gate": "pass",
+    "runtime_smoke": "pass",
+    "android_export": "pass",
+    "project_icon_export": "pass",
+    "signature_v2": true,
+    "signature_v3": true,
+    "zipalign": "pass",
+    "apk_sha256": "3224a88763998c85d21a823625828477ce9f01b5eb3b3ccd8b058f8b809e7a3d",
+    "artifact_zip_sha256": "85760e7b3a684e3e6e0dcf533a6f34fc5903167749aaeac284c3c11d969bac29"
+  },
+  "bourguiba_evidence": {
+    "environment_generated": 780,
+    "facades": 16,
+    "shopfronts": 52,
+    "signage": 52,
+    "balconies": 28,
+    "osm_buildings": 146,
+    "osm_roads": 191,
+    "osm_runtime_children": 1216,
+    "navigation_nodes": 827,
+    "navigation_edges": 924,
+    "largest_component": 741,
+    "connectivity_ratio": 0.896,
+    "navigation_span_m": 3253.0,
+    "blockout_generated": 434,
+    "required_nodes": 12,
+    "real_osm": true
+  },
+  "remaining": {
+    "physical_android_acceptance": "not_verified",
+    "real_player_asset": false,
+    "real_vehicle_count": 0,
+    "visual_milestone_pass": false,
+    "visual_realism_claimed": false,
+    "final_release": false
+  }
+}
