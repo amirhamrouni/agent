@@ -1,160 +1,16 @@
-name: Hayat Tounes Android RC
+name: Hayat Tounes Android RC (legacy manual)
 
 on:
   workflow_dispatch:
-  push:
-    branches: [ main ]
-    paths:
-      - 'project.godot'
-      - 'hayat_tounes_source.zip'
-      - 'hayat_tounes_source.b64'
-      - 'source_parts/**'
-      - 'scripts/**'
-      - 'scenes/**'
-      - 'autoload/**'
-      - 'tools/**'
-      - 'export_presets.cfg'
-      - 'RELEASE_METADATA.json'
-      - 'PROJECT_STATE.json'
 
 permissions:
   contents: read
 
-concurrency:
-  group: hayat-tounes-android-${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
-  android-rc:
+  legacy-workflow-disabled:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
-    env:
-      GODOT_VERSION: '4.7.2'
-      GODOT_CHANNEL: 'stable'
-      ANDROID_HOME: ${{ github.workspace }}/.android-sdk
-      ANDROID_SDK_ROOT: ${{ github.workspace }}/.android-sdk
-      AUTO_BOOTSTRAP_GODOT: '0'
-      EXPECTED_SOURCE_SHA256: 'bd4165e028fb675c1d7b91f92aa37e782a8fb16fe3bf931f90bc42f30b387135'
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Resolve project source
-        shell: bash
+      - name: Legacy workflow notice
         run: |
-          set -euo pipefail
-          ARCHIVE=/tmp/hayat_tounes_source.zip
-          if [[ -f project.godot ]]; then
-            echo "PROJECT_DIR=$GITHUB_WORKSPACE" >> "$GITHUB_ENV"
-            exit 0
-          elif [[ -f hayat_tounes_source.zip ]]; then
-            cp hayat_tounes_source.zip "$ARCHIVE"
-          elif [[ -f hayat_tounes_source.b64 ]]; then
-            base64 -d hayat_tounes_source.b64 > "$ARCHIVE"
-          elif compgen -G 'source_parts/part-*.b64' > /dev/null; then
-            cat source_parts/part-*.b64 | base64 -d > "$ARCHIVE"
-          else
-            echo 'FAIL: no Hayat Tounes project source found.' >&2
-            exit 2
-          fi
-          ACTUAL_SHA256="$(sha256sum "$ARCHIVE" | awk '{print $1}')"
-          echo "Source SHA256: $ACTUAL_SHA256"
-          test "$ACTUAL_SHA256" = "$EXPECTED_SOURCE_SHA256"
-          mkdir -p "$GITHUB_WORKSPACE/_project"
-          unzip -q "$ARCHIVE" -d "$GITHUB_WORKSPACE/_project"
-          test -s "$GITHUB_WORKSPACE/_project/project.godot"
-          echo "PROJECT_DIR=$GITHUB_WORKSPACE/_project" >> "$GITHUB_ENV"
-
-      - name: Setup Java 17
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
-
-      - name: Setup Android command line tools
-        uses: android-actions/setup-android@v3
-
-      - name: Install exact Godot 4.7 Android dependencies
-        shell: bash
-        run: |
-          set -euo pipefail
-          yes | sdkmanager --licenses >/dev/null || true
-          sdkmanager \
-            'platform-tools' \
-            'build-tools;35.0.1' \
-            'platforms;android-35' \
-            'cmdline-tools;latest' \
-            'cmake;3.10.2.4988404' \
-            'ndk;28.1.13356709'
-          test -x "$ANDROID_HOME/platform-tools/adb"
-          test -x "$ANDROID_HOME/build-tools/35.0.1/apksigner"
-          java -version
-          "$ANDROID_HOME/platform-tools/adb" version
-
-      - name: Install Godot 4.7.2 and export templates
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p "$GITHUB_WORKSPACE/.godot-bin" /tmp/godot-templates
-          curl -fL --retry 3 --retry-delay 2 \
-            "https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}-${GODOT_CHANNEL}/Godot_v${GODOT_VERSION}-${GODOT_CHANNEL}_linux.x86_64.zip" \
-            -o /tmp/godot.zip
-          unzip -q /tmp/godot.zip -d "$GITHUB_WORKSPACE/.godot-bin"
-          GODOT_BIN="$GITHUB_WORKSPACE/.godot-bin/Godot_v${GODOT_VERSION}-${GODOT_CHANNEL}_linux.x86_64"
-          chmod +x "$GODOT_BIN"
-          echo "GODOT_BIN=$GODOT_BIN" >> "$GITHUB_ENV"
-          "$GODOT_BIN" --version
-
-          curl -fL --retry 3 --retry-delay 2 \
-            "https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}-${GODOT_CHANNEL}/Godot_v${GODOT_VERSION}-${GODOT_CHANNEL}_export_templates.tpz" \
-            -o /tmp/export_templates.tpz
-          unzip -q /tmp/export_templates.tpz -d /tmp/godot-templates
-          mkdir -p "$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.${GODOT_CHANNEL}"
-          cp -a /tmp/godot-templates/templates/. "$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.${GODOT_CHANNEL}/"
-          test -s "$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.${GODOT_CHANNEL}/android_debug.apk"
-
-      - name: Verify source, runtime and release gates
-        shell: bash
-        run: |
-          set -euo pipefail
-          cd "$PROJECT_DIR"
-          chmod +x tools/release/build_android_rc.sh tools/bootstrap/prepare_godot_runtime.sh || true
-          python3 tools/release/release_gate.py
-          python3 tools/tests/production_gate.py
-          python3 tools/tests/static_integrity.py
-          python3 tools/release/release_metadata.py --verify
-          python3 tools/runtime/verify_local_runtime.py --godot "$GODOT_BIN"
-          python3 tools/release/verify_runtime_evidence.py
-
-      - name: Build runtime-bound Android APK
-        shell: bash
-        run: |
-          set -euo pipefail
-          cd "$PROJECT_DIR"
-          bash tools/release/build_android_rc.sh
-
-      - name: Verify APK
-        shell: bash
-        run: |
-          set -euo pipefail
-          cd "$PROJECT_DIR"
-          APK="$(python3 tools/release/release_metadata.py --field debug_apk)"
-          test -s "$APK"
-          SIZE="$(stat -c%s "$APK")"
-          test "$SIZE" -gt 1000000
-          "$ANDROID_HOME/build-tools/35.0.1/apksigner" verify --verbose "$APK"
-          sha256sum "$APK" | tee "$APK.sha256"
-          echo "APK_PATH=$PROJECT_DIR/$APK" >> "$GITHUB_ENV"
-          echo "APK_SHA_PATH=$PROJECT_DIR/$APK.sha256" >> "$GITHUB_ENV"
-
-      - name: Upload APK artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: hayat-tounes-android-rc-${{ github.run_number }}
-          if-no-files-found: error
-          retention-days: 14
-          path: |
-            ${{ env.APK_PATH }}
-            ${{ env.APK_SHA_PATH }}
-            ${{ env.PROJECT_DIR }}/build/reports/**
+          echo 'This legacy workflow is intentionally manual-only.'
+          echo 'Use .github/workflows/hayat-tounes-android-xz.yml for the active reconstructed-source Godot 4.7.2 Android RC pipeline.'
