@@ -47,7 +47,17 @@ func _initialize() -> void:
         quit(43)
         return
 
-    print("BOURGUIBA_REFERENCE_GATE_PASS controls=%d scope=%s" % [reference["control_points"].size(), reference["scope_id"]])
+    var snapshot: Dictionary = reference.get("snapshot", {})
+    var processed_counts: Dictionary = snapshot.get("processed_counts", {})
+    print("BOURGUIBA_REFERENCE_GATE_PASS controls=%d scope=%s schema=%d buildings=%d roads=%d graph_nodes=%d graph_edges=%d" % [
+        reference["control_points"].size(),
+        reference["scope_id"],
+        int(reference["schema_version"]),
+        int(processed_counts.get("buildings", 0)),
+        int(processed_counts.get("roads", 0)),
+        int(processed_counts.get("graph_nodes", 0)),
+        int(processed_counts.get("graph_edges", 0)),
+    ])
     print("BOURGUIBA_BLOCKOUT_GATE_PASS generated=%d required_nodes=%d" % [scene.generated_count, required_nodes.size()])
     quit(0)
 
@@ -64,8 +74,12 @@ func _load_reference_manifest() -> Dictionary:
         push_error("BOURGUIBA_REFERENCE_INVALID_JSON")
         return {}
     var reference: Dictionary = parsed
-    if int(reference.get("schema_version", 0)) != 1:
-        push_error("BOURGUIBA_REFERENCE_SCHEMA_INVALID")
+    var schema_version := int(reference.get("schema_version", 0))
+    if schema_version != 2:
+        push_error("BOURGUIBA_REFERENCE_SCHEMA_INVALID:%d" % schema_version)
+        return {}
+    if String(reference.get("status", "")) != "bounded_osm_snapshot_installed":
+        push_error("BOURGUIBA_REFERENCE_STATUS_INVALID")
         return {}
     if String(reference.get("coordinate_system", "")) != "WGS84":
         push_error("BOURGUIBA_REFERENCE_COORDINATE_SYSTEM_INVALID")
@@ -74,6 +88,33 @@ func _load_reference_manifest() -> Dictionary:
     if String(license.get("osm_data", "")) != "ODbL-1.0" or String(license.get("attribution", "")) == "":
         push_error("BOURGUIBA_REFERENCE_LICENSE_INVALID")
         return {}
+
+    var snapshot: Dictionary = reference.get("snapshot", {})
+    if snapshot.is_empty():
+        push_error("BOURGUIBA_REFERENCE_SNAPSHOT_MISSING")
+        return {}
+    if String(snapshot.get("projection", "")) != "local_equirectangular":
+        push_error("BOURGUIBA_REFERENCE_PROJECTION_INVALID")
+        return {}
+    var raw_path := String(snapshot.get("raw_path", ""))
+    var processed_path := String(snapshot.get("processed_path", ""))
+    if raw_path == "" or not FileAccess.file_exists(raw_path):
+        push_error("BOURGUIBA_REFERENCE_RAW_SNAPSHOT_MISSING:%s" % raw_path)
+        return {}
+    if processed_path == "" or not FileAccess.file_exists(processed_path):
+        push_error("BOURGUIBA_REFERENCE_PROCESSED_SNAPSHOT_MISSING:%s" % processed_path)
+        return {}
+    if String(snapshot.get("raw_sha256", "")).length() != 64 or String(snapshot.get("processed_sha256", "")).length() != 64:
+        push_error("BOURGUIBA_REFERENCE_SHA_INVALID")
+        return {}
+    var processed_counts: Dictionary = snapshot.get("processed_counts", {})
+    if int(processed_counts.get("buildings", 0)) < 100 or int(processed_counts.get("roads", 0)) < 100:
+        push_error("BOURGUIBA_REFERENCE_PROCESSED_COUNTS_INVALID")
+        return {}
+    if int(processed_counts.get("graph_nodes", 0)) < 500 or int(processed_counts.get("graph_edges", 0)) < 500:
+        push_error("BOURGUIBA_REFERENCE_GRAPH_COUNTS_INVALID")
+        return {}
+
     var controls: Array = reference.get("control_points", [])
     if controls.size() < 3:
         push_error("BOURGUIBA_REFERENCE_CONTROL_POINTS_INSUFFICIENT:%d" % controls.size())
