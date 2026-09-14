@@ -2,6 +2,9 @@ extends Node3D
 class_name TunisPublicRealmPass
 
 var generated_count := 0
+var palm_count := 0
+var kiosk_count := 0
+var cafe_count := 0
 var medium_detail_nodes: Array[Node3D] = []
 var high_detail_nodes: Array[Node3D] = []
 var current_detail_level := 2
@@ -20,6 +23,8 @@ func build() -> void:
     _build_bollards()
     _build_planters()
     _build_street_lamps()
+    _build_palms()
+    _build_kiosks_and_cafes()
     apply_visual_budget(current_detail_level)
 
 func apply_visual_budget(detail_level: int) -> void:
@@ -148,3 +153,36 @@ func _build_street_lamps() -> void:
             _cylinder(root, Vector3(x, 2.8, z), 0.075, 5.4, Color("#33383a"), 0.48, 0.42)
             _box(root, Vector3(x, 5.45, z), Vector3(0.75, 0.16, 0.30), Color("#303638"), 0.45, 0.38)
             _box(root, Vector3(x, 5.32, z), Vector3(0.48, 0.07, 0.22), Color("#efe3bf"), 0.34)
+
+func _build_palms() -> void:
+    var root := Node3D.new(); root.name = "BourguibaPalms"; add_child(root); _register_detail(root, 1)
+    for z: float in [-10.4, 10.4]:
+        for x: float in [-66.0, -42.0, -18.0, 6.0, 30.0, 54.0, 78.0]:
+            _cylinder(root, Vector3(x, 3.25, z), 0.24, 6.1, Color("#796247"), 0.98)
+            _cylinder(root, Vector3(x, 6.32, z), 0.48, 0.42, Color("#4f6c38"), 1.0)
+            for angle_index in range(6):
+                var angle := TAU * float(angle_index) / 6.0
+                var leaf := _box(root, Vector3(x + cos(angle) * 1.05, 6.38, z + sin(angle) * 1.05), Vector3(2.2, 0.12, 0.42), Color("#54783e"), 1.0)
+                leaf.rotation.y = -angle
+                _register_detail(leaf, 2)
+            palm_count += 1
+
+func _build_kiosks_and_cafes() -> void:
+    var root := Node3D.new(); root.name = "BourguibaCafeKiosks"; add_child(root); _register_detail(root, 1)
+    var kiosk_positions := [Vector3(-34.0, 1.35, -13.0), Vector3(40.0, 1.35, 13.0)]
+    for position in kiosk_positions:
+        _box(root, position, Vector3(4.2, 2.7, 2.5), Color("#d7c7a9"), 0.92)
+        _box(root, position + Vector3(0, 1.62, 0), Vector3(4.8, 0.22, 3.0), Color("#8b3230"), 0.88)
+        _box(root, position + Vector3(0, 0.22, -1.27 if position.z > 0.0 else 1.27), Vector3(2.8, 1.0, 0.08), Color("#5a7276"), 0.26, 0.08)
+        kiosk_count += 1
+    var cafe_centers := [Vector3(-58.0, 0.5, -13.4), Vector3(18.0, 0.5, 13.4), Vector3(62.0, 0.5, -13.4)]
+    for center in cafe_centers:
+        for table_index in range(3):
+            var table_x := center.x + float(table_index - 1) * 2.0
+            _cylinder(root, Vector3(table_x, 0.73, center.z), 0.42, 0.08, Color("#6c5843"), 0.84)
+            _cylinder(root, Vector3(table_x, 0.42, center.z), 0.07, 0.62, Color("#383b3b"), 0.55, 0.26)
+            for chair_side in [-1.0, 1.0]:
+                _box(root, Vector3(table_x, 0.46, center.z + chair_side * 0.9), Vector3(0.55, 0.08, 0.55), Color("#7b6047"), 0.86)
+        _cylinder(root, Vector3(center.x, 2.12, center.z), 1.55, 0.10, Color("#d8c49d"), 0.94)
+        _cylinder(root, Vector3(center.x, 1.35, center.z), 0.06, 1.55, Color("#4b4f4f"), 0.58, 0.22)
+        cafe_count += 1
