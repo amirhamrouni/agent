@@ -90,7 +90,8 @@ jobs:
               'autoload/RuntimeDiagnostics.gd', 'autoload/SettingsService.gd',
               'autoload/SessionGuard.gd', 'scripts/core/ProductionWorld.gd',
               'scripts/world/PopulationSpawner.gd', 'scripts/world/time/DayNightManager.gd',
-              'scripts/world/art/TunisResidentialLifePass.gd', 'scripts/ui/GameHUD.gd'
+              'scripts/world/art/TunisResidentialLifePass.gd', 'scripts/ui/GameHUD.gd',
+              'tools/tests/bourguiba_blockout_test.gd'
           ]
           missing = [p for p in required if not (out / p).is_file()]
           if missing:
@@ -163,6 +164,18 @@ jobs:
           print('GODOT_IMPORT_GATE_PASS')
           PY
 
+      - name: Bourguiba deterministic blockout runtime gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd _project
+          "$GODOT_BIN" --headless --path . --script res://tools/tests/bourguiba_blockout_test.gd 2>&1 | tee ../bourguiba-blockout.log
+          cd ..
+          grep -F 'BOURGUIBA_BLOCKOUT_GATE_PASS' bourguiba-blockout.log
+          if grep -E 'SCRIPT ERROR:|Parse Error:|Failed to load script|BOURGUIBA_BLOCKOUT_.*FAILED|BOURGUIBA_BLOCKOUT_MISSING_NODE|BOURGUIBA_BLOCKOUT_INSUFFICIENT_GEOMETRY' bourguiba-blockout.log; then
+            exit 44
+          fi
+
       - name: Runtime smoke on production main scene
         shell: bash
         run: |
@@ -221,6 +234,7 @@ jobs:
             apk-signature.txt
             apk-zipalign.txt
             godot-import.log
+            bourguiba-blockout.log
             godot-runtime.log
             godot-export.log
 
@@ -233,5 +247,6 @@ jobs:
           retention-days: 7
           path: |
             godot-import.log
+            bourguiba-blockout.log
             godot-runtime.log
             godot-export.log
