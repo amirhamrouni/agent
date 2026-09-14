@@ -1,6 +1,7 @@
 [application]
 config/name="Hayat Tounes 3D"
-config/version="0.53.34"
+config/version="0.53.35"
+config/icon="res://assets/branding/hayat_tounes_icon.svg"
 run/main_scene="res://main_production.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")
 
