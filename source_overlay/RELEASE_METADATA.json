@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "version_name": "0.53.34",
+  "version_code": 87,
+  "package_id": "com.amir.hayattounes",
+  "godot_version": "4.7.2",
+  "debug_apk": "build/android/hayat-tounes-v0.53.34-debug.apk",
+  "release_apk": "build/android/hayat-tounes-v0.53.34-release.apk",
+  "final_apk": "build/final/hayat-tounes-v0.53.34-FINAL.apk",
+  "device_acceptance_schema": 4,
+  "device_acceptance_contract": 4
+}
