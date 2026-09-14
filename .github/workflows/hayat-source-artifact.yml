@@ -18,8 +18,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
-      EXPECTED_RUNTIME_SOURCE_TREE: '31ab8f4ee16643a3842d70af39863a4079f00325048b42418a0bbefa81f0d006'
-      EXPECTED_RUNTIME_SOURCE_FILES: '95'
+      EXPECTED_RUNTIME_SOURCE_TREE: '925fd613e8a1a75b1f7f22ed811e7aa112912843ed732c1e14dac1daf194187b'
+      EXPECTED_RUNTIME_SOURCE_FILES: '97'
       VERSION_NAME: '0.53.35'
     steps:
       - uses: actions/checkout@v4
@@ -101,7 +101,7 @@ jobs:
           tree = h.hexdigest()
           expected_tree = os.environ['EXPECTED_RUNTIME_SOURCE_TREE']
           expected_files = int(os.environ['EXPECTED_RUNTIME_SOURCE_FILES'])
-          evidence = {'file_count': len(files), 'tree_sha256': tree, 'expected_tree_sha256': expected_tree, 'match': tree == expected_tree and len(files) == expected_files}
+          evidence = {'file_count': len(files), 'tree_sha256': tree, 'expected_tree_sha256': expected_tree, 'expected_file_count': expected_files, 'match': tree == expected_tree and len(files) == expected_files}
           Path('_project/SOURCE_IDENTITY.json').write_text(json.dumps(evidence, indent=2, sort_keys=True) + '\n')
           print(f'SOURCE_ARTIFACT_IDENTITY tree={tree} files={len(files)}')
           if len(files) != expected_files or tree != expected_tree:
