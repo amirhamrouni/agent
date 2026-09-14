@@ -6,6 +6,8 @@ on:
     branches: [ main ]
     paths:
       - 'raw_source_packs/**'
+      - 'source_overlay/**'
+      - 'source_overlay_packs/**'
       - '.github/workflows/hayat-tounes-android-xz.yml'
 
 permissions:
@@ -29,7 +31,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Reconstruct source from reviewed JSONL packs
+      - name: Reconstruct current source and overlays
         shell: bash
         run: |
           set -euo pipefail
@@ -37,47 +39,75 @@ jobs:
           import json
           from pathlib import Path
 
-          source = Path('raw_source_packs')
           out = Path('_project')
-          packs = sorted(source.glob('pack-*.jsonl'))
-          if len(packs) != 18:
-              raise SystemExit(f'EXPECTED_18_PACKS_FOUND_{len(packs)}')
+          out.mkdir(parents=True, exist_ok=True)
 
-          chunks = {}
-          for pack in packs:
-              for lineno, raw in enumerate(pack.read_text(encoding='utf-8').splitlines(), 1):
-                  if not raw.strip():
+          def apply_packs(folder: str, expected: int | None = None) -> int:
+              source = Path(folder)
+              packs = sorted(source.glob('*.jsonl'))
+              if expected is not None and len(packs) != expected:
+                  raise SystemExit(f'{folder}:EXPECTED_{expected}_PACKS_FOUND_{len(packs)}')
+              chunks = {}
+              for pack in packs:
+                  for lineno, raw in enumerate(pack.read_text(encoding='utf-8').splitlines(), 1):
+                      if not raw.strip():
+                          continue
+                      row = json.loads(raw)
+                      rel = str(row['path'])
+                      idx = int(row.get('index', 0))
+                      if rel.startswith('/') or '..' in Path(rel).parts:
+                          raise SystemExit(f'UNSAFE_PATH:{pack}:{lineno}:{rel}')
+                      chunks.setdefault(rel, {})[idx] = str(row['content'])
+              for rel, parts in chunks.items():
+                  indexes = sorted(parts)
+                  if indexes != list(range(len(indexes))):
+                      raise SystemExit(f'NON_CONTIGUOUS:{rel}:{indexes}')
+                  target = out / rel
+                  target.parent.mkdir(parents=True, exist_ok=True)
+                  target.write_text(''.join(parts[i] for i in indexes), encoding='utf-8')
+              return len(chunks)
+
+          base_count = apply_packs('raw_source_packs', 18)
+          overlay_count = apply_packs('source_overlay_packs', 5)
+
+          loose_overlay = Path('source_overlay')
+          loose_count = 0
+          if loose_overlay.is_dir():
+              for src in loose_overlay.rglob('*'):
+                  if not src.is_file():
                       continue
-                  row = json.loads(raw)
-                  rel = str(row['path'])
-                  idx = int(row['index'])
-                  if rel.startswith('/') or '..' in Path(rel).parts:
-                      raise SystemExit(f'UNSAFE_PATH:{rel}')
-                  chunks.setdefault(rel, {})[idx] = str(row['content'])
-
-          for rel, parts in chunks.items():
-              indexes = sorted(parts)
-              if indexes != list(range(len(indexes))):
-                  raise SystemExit(f'NON_CONTIGUOUS:{rel}:{indexes}')
-              target = out / rel
-              target.parent.mkdir(parents=True, exist_ok=True)
-              target.write_text(''.join(parts[i] for i in indexes), encoding='utf-8')
+                  rel = src.relative_to(loose_overlay)
+                  target = out / rel
+                  target.parent.mkdir(parents=True, exist_ok=True)
+                  target.write_bytes(src.read_bytes())
+                  loose_count += 1
 
           required = [
               'project.godot', 'export_presets.cfg', 'main_production.tscn',
               'RELEASE_METADATA.json',
               'autoload/GameState.gd', 'autoload/SaveService.gd',
               'autoload/RuntimeDiagnostics.gd', 'autoload/SettingsService.gd',
-              'autoload/SessionGuard.gd', 'scripts/core/ProductionWorld.gd'
+              'autoload/SessionGuard.gd', 'scripts/core/ProductionWorld.gd',
+              'scripts/world/time/WorldClock.gd',
+              'scripts/world/time/DayNightManager.gd',
+              'scripts/world/events/WorldEventScheduler.gd',
+              'scripts/world/osm/RoadGraph.gd',
+              'scripts/world/osm/OsmWorldLoader.gd',
+              'scripts/player/visuals/PlayerVisualFactory.gd',
+              'scripts/vehicles/visuals/VehicleVisualFactory.gd',
+              'scripts/world/art/TunisMaterialLibrary.gd',
+              'scripts/world/art/VisualReadinessGate.gd',
+              'shaders/tunis_plaster.gdshader',
+              'shaders/tunis_asphalt.gdshader'
           ]
           missing = [p for p in required if not (out / p).is_file()]
           if missing:
               raise SystemExit('MISSING_REQUIRED:' + ','.join(missing))
 
           gd = list(out.rglob('*.gd'))
-          if len(gd) < 40:
+          if len(gd) < 60:
               raise SystemExit(f'INSUFFICIENT_GDSCRIPT_COUNT:{len(gd)}')
-          print(f'RECONSTRUCT_PASS packs={len(packs)} files={len(chunks)} gdscript={len(gd)}')
+          print(f'RECONSTRUCT_PASS base={base_count} overlay_pack={overlay_count} loose={loose_count} gdscript={len(gd)}')
           PY
           grep -F 'config/version="0.53.30"' _project/project.godot
           grep -F 'version/code=83' _project/export_presets.cfg
@@ -124,13 +154,22 @@ jobs:
           test -s "$TEMPLATE_DIR/android_debug.apk"
           test -s "$TEMPLATE_DIR/android_release.apk"
 
-      - name: Godot import and parser gate
+      - name: Godot import and strict parser gate
         shell: bash
         run: |
           set -euo pipefail
           cd _project
           "$GODOT_BIN" --headless --editor --path . --quit-after 2 2>&1 | tee ../godot-import.log
-          ! grep -E 'SCRIPT ERROR:|Parse Error:|Failed to load script|Node not found:' ../godot-import.log
+          cd ..
+          python3 - <<'PY'
+          from pathlib import Path
+          log = Path('godot-import.log').read_text(errors='replace')
+          fatal = ['SCRIPT ERROR:', 'Parse Error:', 'Failed to load script', 'Node not found:']
+          hits = [x for x in fatal if x in log]
+          if hits:
+              raise SystemExit('FATAL_GODOT_IMPORT_ERRORS:' + ','.join(hits))
+          print('GODOT_IMPORT_GATE_PASS')
+          PY
 
       - name: Runtime smoke on production main scene
         shell: bash
@@ -138,8 +177,16 @@ jobs:
           set -euo pipefail
           cd _project
           "$GODOT_BIN" --headless --path . --quit-after 300 2>&1 | tee ../godot-runtime.log
-          ! grep -E 'SCRIPT ERROR:|Parse Error:|Failed to load script|Invalid access|Invalid assignment|Node not found:' ../godot-runtime.log
-          grep -F 'Godot Engine v4.7.2' ../godot-runtime.log || true
+          cd ..
+          python3 - <<'PY'
+          from pathlib import Path
+          log = Path('godot-runtime.log').read_text(errors='replace')
+          fatal = ['SCRIPT ERROR:', 'Parse Error:', 'Failed to load script', 'Invalid access', 'Invalid assignment', 'Node not found:']
+          hits = [x for x in fatal if x in log]
+          if hits:
+              raise SystemExit('FATAL_GODOT_RUNTIME_ERRORS:' + ','.join(hits))
+          print('GODOT_RUNTIME_GATE_PASS')
+          PY
 
       - name: Export Android debug APK
         shell: bash
@@ -148,9 +195,18 @@ jobs:
           cd _project
           mkdir -p build/android
           "$GODOT_BIN" --headless --path . --export-debug 'Android Development' 'build/android/hayat-tounes-v0.53.30-debug.apk' 2>&1 | tee ../godot-export.log
-          ! grep -E 'SCRIPT ERROR:|Parse Error:|Failed to load script|ERROR:.*export' ../godot-export.log
-          test -s build/android/hayat-tounes-v0.53.30-debug.apk
-          test "$(stat -c%s build/android/hayat-tounes-v0.53.30-debug.apk)" -gt 1000000
+          cd ..
+          python3 - <<'PY'
+          from pathlib import Path
+          log = Path('godot-export.log').read_text(errors='replace')
+          fatal = ['SCRIPT ERROR:', 'Parse Error:', 'Failed to load script', 'ERROR: Failed to export']
+          hits = [x for x in fatal if x in log]
+          if hits:
+              raise SystemExit('FATAL_GODOT_EXPORT_ERRORS:' + ','.join(hits))
+          print('GODOT_EXPORT_GATE_PASS')
+          PY
+          test -s "$APK_PATH"
+          test "$(stat -c%s "$APK_PATH")" -gt 1000000
 
       - name: Verify APK package signature alignment and hash
         shell: bash
@@ -172,6 +228,18 @@ jobs:
             hayat-tounes-v0.53.30-debug.apk.sha256
             apk-signature.txt
             apk-zipalign.txt
+            godot-import.log
+            godot-runtime.log
+            godot-export.log
+
+      - name: Upload failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hayat-tounes-v0.53.30-failure-diagnostics
+          if-no-files-found: ignore
+          retention-days: 7
+          path: |
             godot-import.log
             godot-runtime.log
             godot-export.log
