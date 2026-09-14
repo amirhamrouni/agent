@@ -6,6 +6,7 @@ on:
     branches: [ main ]
     paths:
       - 'tools/android/device_acceptance.py'
+      - 'tools/android/verify_device_acceptance.py'
       - 'tools/tests/test_device_acceptance_harness.py'
       - '.github/workflows/android-device-acceptance-harness.yml'
 
@@ -19,6 +20,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Python syntax gate
-        run: python3 -m py_compile tools/android/device_acceptance.py tools/tests/test_device_acceptance_harness.py
-      - name: Fake-device acceptance contract
+        run: python3 -m py_compile tools/android/device_acceptance.py tools/android/verify_device_acceptance.py tools/tests/test_device_acceptance_harness.py
+      - name: Fake-device acceptance and tamper-detection contract
         run: python3 tools/tests/test_device_acceptance_harness.py
