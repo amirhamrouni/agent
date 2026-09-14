@@ -8,6 +8,7 @@ on:
       - 'project.godot'
       - 'hayat_tounes_source.zip'
       - 'hayat_tounes_source.b64'
+      - 'source_parts/**'
       - 'scripts/**'
       - 'scenes/**'
       - 'autoload/**'
@@ -33,6 +34,7 @@ jobs:
       ANDROID_HOME: ${{ github.workspace }}/.android-sdk
       ANDROID_SDK_ROOT: ${{ github.workspace }}/.android-sdk
       AUTO_BOOTSTRAP_GODOT: '0'
+      EXPECTED_SOURCE_SHA256: 'bd4165e028fb675c1d7b91f92aa37e782a8fb16fe3bf931f90bc42f30b387135'
 
     steps:
       - name: Checkout
@@ -42,21 +44,27 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          ARCHIVE=/tmp/hayat_tounes_source.zip
           if [[ -f project.godot ]]; then
             echo "PROJECT_DIR=$GITHUB_WORKSPACE" >> "$GITHUB_ENV"
+            exit 0
           elif [[ -f hayat_tounes_source.zip ]]; then
-            mkdir -p "$GITHUB_WORKSPACE/_project"
-            unzip -q hayat_tounes_source.zip -d "$GITHUB_WORKSPACE/_project"
-            echo "PROJECT_DIR=$GITHUB_WORKSPACE/_project" >> "$GITHUB_ENV"
+            cp hayat_tounes_source.zip "$ARCHIVE"
           elif [[ -f hayat_tounes_source.b64 ]]; then
-            base64 -d hayat_tounes_source.b64 > /tmp/hayat_tounes_source.zip
-            mkdir -p "$GITHUB_WORKSPACE/_project"
-            unzip -q /tmp/hayat_tounes_source.zip -d "$GITHUB_WORKSPACE/_project"
-            echo "PROJECT_DIR=$GITHUB_WORKSPACE/_project" >> "$GITHUB_ENV"
+            base64 -d hayat_tounes_source.b64 > "$ARCHIVE"
+          elif compgen -G 'source_parts/part-*.b64' > /dev/null; then
+            cat source_parts/part-*.b64 | base64 -d > "$ARCHIVE"
           else
             echo 'FAIL: no Hayat Tounes project source found.' >&2
             exit 2
           fi
+          ACTUAL_SHA256="$(sha256sum "$ARCHIVE" | awk '{print $1}')"
+          echo "Source SHA256: $ACTUAL_SHA256"
+          test "$ACTUAL_SHA256" = "$EXPECTED_SOURCE_SHA256"
+          mkdir -p "$GITHUB_WORKSPACE/_project"
+          unzip -q "$ARCHIVE" -d "$GITHUB_WORKSPACE/_project"
+          test -s "$GITHUB_WORKSPACE/_project/project.godot"
+          echo "PROJECT_DIR=$GITHUB_WORKSPACE/_project" >> "$GITHUB_ENV"
 
       - name: Setup Java 17
         uses: actions/setup-java@v4
