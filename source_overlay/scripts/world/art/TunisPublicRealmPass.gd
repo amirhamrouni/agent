@@ -8,6 +8,10 @@ var current_detail_level := 2
 
 func build() -> void:
     add_to_group("quality_visual_detail")
+    _build_road_surface()
+    _build_sidewalks()
+    _build_lane_markings()
+    _build_crosswalks()
     _build_bourguiba_curbs()
     _build_center_median()
     _build_tree_grates()
@@ -53,6 +57,40 @@ func _cylinder(parent: Node3D, pos: Vector3, radius: float, height: float, color
     parent.add_child(instance); generated_count += 1
     return instance
 
+func _build_road_surface() -> void:
+    var root := Node3D.new(); root.name = "BourguibaRoadSurface"; add_child(root)
+    _box(root, Vector3(0, 0.035, 0), Vector3(170.0, 0.07, 16.0), Color("#343638"), 0.98)
+    for x in [-70.0, -35.0, 0.0, 35.0, 70.0]:
+        _register_detail(_box(root, Vector3(x, 0.074, -4.2), Vector3(12.0, 0.012, 0.035), Color("#292b2c"), 1.0), 2)
+        _register_detail(_box(root, Vector3(x + 7.0, 0.074, 4.3), Vector3(8.0, 0.012, 0.028), Color("#454749"), 1.0), 2)
+
+func _build_sidewalks() -> void:
+    var root := Node3D.new(); root.name = "BourguibaSidewalks"; add_child(root)
+    for z in [-11.5, 11.5]:
+        _box(root, Vector3(0, 0.105, z), Vector3(170.0, 0.18, 6.6), Color("#c6bca9"), 0.98)
+        for x in range(-80, 81, 4):
+            _register_detail(_box(root, Vector3(float(x), 0.202, z), Vector3(0.025, 0.008, 6.2), Color("#a9a08f"), 1.0), 2)
+        for dz in [-2.0, 0.0, 2.0]:
+            _register_detail(_box(root, Vector3(0, 0.203, z + dz), Vector3(166.0, 0.008, 0.025), Color("#aaa18f"), 1.0), 2)
+
+func _build_lane_markings() -> void:
+    var root := Node3D.new(); root.name = "BourguibaLaneMarkings"; add_child(root); _register_detail(root, 1)
+    for z in [-4.4, 4.4]:
+        for x in range(-78, 79, 8):
+            _box(root, Vector3(float(x), 0.085, z), Vector3(4.2, 0.018, 0.13), Color("#eee9d9"), 0.78)
+    for z in [-7.15, 7.15]:
+        _box(root, Vector3(0, 0.086, z), Vector3(164.0, 0.018, 0.11), Color("#eee9d9"), 0.78)
+
+func _build_crosswalks() -> void:
+    var root := Node3D.new(); root.name = "BourguibaCrosswalks"; add_child(root)
+    for crossing_x in [-54.0, 0.0, 54.0]:
+        for stripe in range(9):
+            var x := crossing_x - 3.2 + float(stripe) * 0.8
+            _box(root, Vector3(x, 0.091, -4.6), Vector3(0.42, 0.02, 5.4), Color("#e8e5da"), 0.82)
+            _box(root, Vector3(x, 0.091, 4.6), Vector3(0.42, 0.02, 5.4), Color("#e8e5da"), 0.82)
+        for z in [-7.7, 7.7]:
+            _register_detail(_box(root, Vector3(crossing_x, 0.235, z), Vector3(7.4, 0.08, 1.15), Color("#b9b09f"), 0.96), 1)
+
 func _build_bourguiba_curbs() -> void:
     var root := Node3D.new(); root.name = "BourguibaRedWhiteCurbs"; add_child(root)
     for z in [-8.0, 8.0]:
@@ -74,8 +112,7 @@ func _build_tree_grates() -> void:
     var root := Node3D.new(); root.name = "BourguibaTreeGrates"; add_child(root)
     for z in [-10.4, 10.4]:
         for x in [-66.0, -42.0, -18.0, 6.0, 30.0, 54.0, 78.0]:
-            var pos := Vector3(x, 0.13, z)
-            _register_detail(_box(root, pos, Vector3(1.7, 0.035, 1.7), Color("#505554"), 0.8, 0.18), 1)
+            _register_detail(_box(root, Vector3(x, 0.22, z), Vector3(1.7, 0.035, 1.7), Color("#505554"), 0.8, 0.18), 1)
 
 func _build_drainage_grates() -> void:
     var root := Node3D.new(); root.name = "BourguibaStreetDrainage"; add_child(root)
@@ -87,27 +124,27 @@ func _build_benches() -> void:
     var root := Node3D.new(); root.name = "BourguibaBenches"; add_child(root); _register_detail(root, 2)
     for z in [-11.8, 11.8]:
         for x in [-52.0, -4.0, 44.0]:
-            _box(root, Vector3(x, 0.62, z), Vector3(2.4, 0.12, 0.55), Color("#6d5137"), 0.82)
-            _box(root, Vector3(x, 1.02, z + (0.23 if z < 0.0 else -0.23)), Vector3(2.4, 0.75, 0.10), Color("#6d5137"), 0.82)
-            _box(root, Vector3(x - 0.92, 0.31, z), Vector3(0.10, 0.62, 0.45), Color("#373b3d"), 0.52, 0.35)
-            _box(root, Vector3(x + 0.92, 0.31, z), Vector3(0.10, 0.62, 0.45), Color("#373b3d"), 0.52, 0.35)
+            _box(root, Vector3(x, 0.72, z), Vector3(2.4, 0.12, 0.55), Color("#6d5137"), 0.82)
+            _box(root, Vector3(x, 1.12, z + (0.23 if z < 0.0 else -0.23)), Vector3(2.4, 0.75, 0.10), Color("#6d5137"), 0.82)
+            _box(root, Vector3(x - 0.92, 0.41, z), Vector3(0.10, 0.62, 0.45), Color("#373b3d"), 0.52, 0.35)
+            _box(root, Vector3(x + 0.92, 0.41, z), Vector3(0.10, 0.62, 0.45), Color("#373b3d"), 0.52, 0.35)
 
 func _build_bollards() -> void:
     var root := Node3D.new(); root.name = "BourguibaBollards"; add_child(root); _register_detail(root, 1)
     for z in [-8.8, 8.8]:
         for x in [-72.0, -48.0, -24.0, 0.0, 24.0, 48.0, 72.0]:
-            _cylinder(root, Vector3(x, 0.45, z), 0.10, 0.90, Color("#363a3c"), 0.55, 0.32)
+            _cylinder(root, Vector3(x, 0.55, z), 0.10, 0.90, Color("#363a3c"), 0.55, 0.32)
 
 func _build_planters() -> void:
     var root := Node3D.new(); root.name = "BourguibaPlanters"; add_child(root); _register_detail(root, 2)
     for x in [-60.0, -30.0, 0.0, 30.0, 60.0]:
-        _box(root, Vector3(x, 0.48, 0.0), Vector3(2.4, 0.75, 1.5), Color("#b8aa91"), 0.96)
-        _box(root, Vector3(x, 0.90, 0.0), Vector3(2.05, 0.20, 1.15), Color("#455f3b"), 1.0)
+        _box(root, Vector3(x, 0.58, 0.0), Vector3(2.4, 0.75, 1.5), Color("#b8aa91"), 0.96)
+        _box(root, Vector3(x, 1.0, 0.0), Vector3(2.05, 0.20, 1.15), Color("#455f3b"), 1.0)
 
 func _build_street_lamps() -> void:
     var root := Node3D.new(); root.name = "BourguibaStreetLamps"; add_child(root); _register_detail(root, 1)
     for z in [-11.0, 11.0]:
         for x in [-72.0, -48.0, -24.0, 0.0, 24.0, 48.0, 72.0]:
-            _cylinder(root, Vector3(x, 2.7, z), 0.075, 5.4, Color("#33383a"), 0.48, 0.42)
-            _box(root, Vector3(x, 5.35, z), Vector3(0.75, 0.16, 0.30), Color("#303638"), 0.45, 0.38)
-            _box(root, Vector3(x, 5.22, z), Vector3(0.48, 0.07, 0.22), Color("#efe3bf"), 0.34)
+            _cylinder(root, Vector3(x, 2.8, z), 0.075, 5.4, Color("#33383a"), 0.48, 0.42)
+            _box(root, Vector3(x, 5.45, z), Vector3(0.75, 0.16, 0.30), Color("#303638"), 0.45, 0.38)
+            _box(root, Vector3(x, 5.32, z), Vector3(0.48, 0.07, 0.22), Color("#efe3bf"), 0.34)
