@@ -21,7 +21,7 @@ jobs:
       # Pinned to fresh CI evidence for the current reconstructed runtime/export
       # source. Any byte-level runtime source change must intentionally update
       # these values from a newly generated identity evidence artifact.
-      EXPECTED_RUNTIME_SOURCE_TREE: 'dfdeafc585a52b6e7614f2e454ea653d82c518ba6e3b2f15f6da7da7774c7807'
+      EXPECTED_RUNTIME_SOURCE_TREE: '358a735a7e0404746677143590e4a9a84cfa7670d152cd054395894b0d9e68f0'
       EXPECTED_RUNTIME_SOURCE_FILES: '93'
     steps:
       - uses: actions/checkout@v4
