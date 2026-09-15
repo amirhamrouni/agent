@@ -38,43 +38,76 @@ static func _fallback() -> Node3D:
     var style: Dictionary = cfg.get("fallback", {})
     var root := Node3D.new()
     root.name = "FallbackPlayerVisual"
+
     var skin := Color(str(style.get("skin", "#b98560")))
     var shirt := Color(str(style.get("shirt", "#284c63")))
-    var shirt_dark := shirt.darkened(0.18)
-    var trousers := Color(str(style.get("trousers", "#252a30")))
+    var shirt_dark := shirt.darkened(0.22)
+    var denim := Color(str(style.get("trousers", "#252f3a")))
     var shoes := Color(str(style.get("shoes", "#17191c")))
-    var hair := Color("#1b1715")
+    var sole := Color("#d7d2c6")
+    var hair := Color("#191512")
+    var leather := Color("#4a3326")
 
-    # Human-shaped authored fallback. It stays inexpensive enough for mobile crowds,
-    # while avoiding the old stick/block silhouette when no external character asset exists.
-    _capsule(root, "Torso", Vector3(0, 1.26, 0), 0.29, 0.78, shirt)
-    _box(root, "Waist", Vector3(0, 0.91, 0), Vector3(0.48, 0.22, 0.30), shirt_dark)
-    _cylinder(root, "Neck", Vector3(0, 1.72, 0), 0.105, 0.18, skin)
-    _sphere(root, "Head", Vector3(0, 1.98, 0), Vector3(0.29, 0.34, 0.29), skin)
-    var hair_cap := _sphere(root, "Hair", Vector3(0, 2.12, 0.02), Vector3(0.295, 0.17, 0.295), hair)
-    hair_cap.position.z = 0.035
-    _sphere(root, "EarL", Vector3(-0.295, 1.99, 0), Vector3(0.055, 0.075, 0.045), skin)
-    _sphere(root, "EarR", Vector3(0.295, 1.99, 0), Vector3(0.055, 0.075, 0.045), skin)
-    _box(root, "Nose", Vector3(0, 1.99, -0.275), Vector3(0.075, 0.11, 0.08), skin)
+    # Human-scale third-person fallback. The earlier figure read as stacked blocks
+    # in production captures. These proportions keep the same cheap primitives but
+    # establish shoulders, ribcage, hips, bent arms, separated legs and footwear.
+    _capsule(root, "Chest", Vector3(0, 1.33, 0), 0.245, 0.70, shirt)
+    _box(root, "UpperBack", Vector3(0, 1.43, 0.105), Vector3(0.50, 0.34, 0.16), shirt_dark)
+    _box(root, "Hip", Vector3(0, 0.95, 0), Vector3(0.43, 0.22, 0.27), denim)
+    _box(root, "Belt", Vector3(0, 1.02, -0.055), Vector3(0.44, 0.055, 0.29), leather)
+    _box(root, "BeltBuckle", Vector3(0, 1.02, -0.207), Vector3(0.075, 0.055, 0.025), Color("#81755f"))
 
-    var arm_l := _capsule(root, "ArmL", Vector3(-0.40, 1.28, 0), 0.095, 0.66, shirt)
-    arm_l.rotation_degrees.z = -6.0
-    var arm_r := _capsule(root, "ArmR", Vector3(0.40, 1.28, 0), 0.095, 0.66, shirt)
-    arm_r.rotation_degrees.z = 6.0
-    _sphere(root, "HandL", Vector3(-0.43, 0.92, 0), Vector3(0.10, 0.11, 0.085), skin)
-    _sphere(root, "HandR", Vector3(0.43, 0.92, 0), Vector3(0.10, 0.11, 0.085), skin)
+    _cylinder(root, "Neck", Vector3(0, 1.72, 0), 0.092, 0.15, skin)
+    _sphere(root, "Head", Vector3(0, 1.96, -0.012), Vector3(0.255, 0.315, 0.245), skin)
+    _sphere(root, "HairTop", Vector3(0, 2.095, 0.006), Vector3(0.258, 0.145, 0.250), hair)
+    _box(root, "HairBack", Vector3(0, 2.02, 0.205), Vector3(0.40, 0.24, 0.08), hair)
+    _sphere(root, "EarL", Vector3(-0.255, 1.97, 0), Vector3(0.045, 0.064, 0.036), skin)
+    _sphere(root, "EarR", Vector3(0.255, 1.97, 0), Vector3(0.045, 0.064, 0.036), skin)
+    _box(root, "Nose", Vector3(0, 1.965, -0.238), Vector3(0.055, 0.085, 0.065), skin)
+    _box(root, "BrowL", Vector3(-0.078, 2.035, -0.242), Vector3(0.09, 0.018, 0.018), hair)
+    _box(root, "BrowR", Vector3(0.078, 2.035, -0.242), Vector3(0.09, 0.018, 0.018), hair)
 
-    var leg_l := _capsule(root, "LegL", Vector3(-0.15, 0.53, 0), 0.115, 0.86, trousers)
-    leg_l.rotation_degrees.z = -1.5
-    var leg_r := _capsule(root, "LegR", Vector3(0.15, 0.53, 0), 0.115, 0.86, trousers)
-    leg_r.rotation_degrees.z = 1.5
-    _box(root, "ShoeL", Vector3(-0.15, 0.10, -0.085), Vector3(0.24, 0.17, 0.40), shoes)
-    _box(root, "ShoeR", Vector3(0.15, 0.10, -0.085), Vector3(0.24, 0.17, 0.40), shoes)
+    # Collar and placket stop the torso from reading as a single capsule.
+    var collar_l := _box(root, "CollarL", Vector3(-0.07, 1.61, -0.225), Vector3(0.13, 0.13, 0.035), shirt_dark)
+    collar_l.rotation_degrees.z = -18.0
+    var collar_r := _box(root, "CollarR", Vector3(0.07, 1.61, -0.225), Vector3(0.13, 0.13, 0.035), shirt_dark)
+    collar_r.rotation_degrees.z = 18.0
+    _box(root, "ShirtPlacket", Vector3(0, 1.34, -0.247), Vector3(0.026, 0.46, 0.022), shirt_dark)
 
-    # Small Tunis streetwear details improve silhouette/readability in third person.
-    _box(root, "ShirtPlacket", Vector3(0, 1.33, -0.285), Vector3(0.035, 0.48, 0.025), shirt_dark)
-    _box(root, "Belt", Vector3(0, 0.89, -0.04), Vector3(0.48, 0.065, 0.32), Color("#332b26"))
-    _box(root, "BeltBuckle", Vector3(0, 0.89, -0.208), Vector3(0.10, 0.07, 0.025), Color("#8c8171"))
+    var upper_arm_l := _capsule(root, "UpperArmL", Vector3(-0.335, 1.36, 0.0), 0.082, 0.42, shirt)
+    upper_arm_l.rotation_degrees.z = -12.0
+    upper_arm_l.rotation_degrees.x = 8.0
+    var upper_arm_r := _capsule(root, "UpperArmR", Vector3(0.335, 1.36, 0.0), 0.082, 0.42, shirt)
+    upper_arm_r.rotation_degrees.z = 12.0
+    upper_arm_r.rotation_degrees.x = -7.0
+    var forearm_l := _capsule(root, "ForearmL", Vector3(-0.375, 1.04, -0.025), 0.072, 0.36, skin)
+    forearm_l.rotation_degrees.z = -5.0
+    forearm_l.rotation_degrees.x = -10.0
+    var forearm_r := _capsule(root, "ForearmR", Vector3(0.375, 1.04, 0.015), 0.072, 0.36, skin)
+    forearm_r.rotation_degrees.z = 5.0
+    forearm_r.rotation_degrees.x = 9.0
+    _sphere(root, "HandL", Vector3(-0.39, 0.84, -0.03), Vector3(0.078, 0.095, 0.065), skin)
+    _sphere(root, "HandR", Vector3(0.39, 0.84, 0.02), Vector3(0.078, 0.095, 0.065), skin)
+
+    var thigh_l := _capsule(root, "ThighL", Vector3(-0.115, 0.72, 0.0), 0.105, 0.50, denim)
+    thigh_l.rotation_degrees.z = -1.5
+    var thigh_r := _capsule(root, "ThighR", Vector3(0.115, 0.72, 0.0), 0.105, 0.50, denim)
+    thigh_r.rotation_degrees.z = 1.5
+    var shin_l := _capsule(root, "ShinL", Vector3(-0.125, 0.34, 0.005), 0.088, 0.44, denim.darkened(0.06))
+    shin_l.rotation_degrees.x = 1.5
+    var shin_r := _capsule(root, "ShinR", Vector3(0.125, 0.34, -0.005), 0.088, 0.44, denim.darkened(0.06))
+    shin_r.rotation_degrees.x = -1.5
+
+    _box(root, "ShoeL", Vector3(-0.13, 0.105, -0.085), Vector3(0.205, 0.145, 0.34), shoes)
+    _box(root, "ShoeR", Vector3(0.13, 0.105, -0.085), Vector3(0.205, 0.145, 0.34), shoes)
+    _box(root, "SoleL", Vector3(-0.13, 0.045, -0.095), Vector3(0.215, 0.04, 0.35), sole)
+    _box(root, "SoleR", Vector3(0.13, 0.045, -0.095), Vector3(0.215, 0.04, 0.35), sole)
+
+    # Small cross-body satchel: common streetwear detail, breaks the symmetric toy silhouette.
+    var strap := _box(root, "SatchelStrap", Vector3(0.03, 1.36, -0.252), Vector3(0.035, 0.78, 0.025), leather)
+    strap.rotation_degrees.z = -25.0
+    _box(root, "Satchel", Vector3(0.245, 1.00, -0.245), Vector3(0.28, 0.24, 0.10), leather.darkened(0.10))
+
     return root
 
 static func _mat(color: Color, roughness := 0.82) -> StandardMaterial3D:
@@ -115,7 +148,7 @@ static func _capsule(parent: Node3D, name: String, pos: Vector3, radius: float, 
     mesh.radius = radius
     mesh.height = height
     mesh.radial_segments = 12
-    mesh.rings = 4
+    mesh.rings = 5
     mi.mesh = mesh
     mi.position = pos
     mi.material_override = _mat(color)
