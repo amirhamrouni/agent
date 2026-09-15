@@ -39,19 +39,42 @@ static func _fallback() -> Node3D:
     var root := Node3D.new()
     root.name = "FallbackPlayerVisual"
     var skin := Color(str(style.get("skin", "#b98560")))
-    var shirt := Color(str(style.get("shirt", "#2f4d64")))
-    var trousers := Color(str(style.get("trousers", "#2a2d31")))
-    var shoes := Color(str(style.get("shoes", "#1d1d1f")))
-    _cylinder(root, "Torso", Vector3(0, 1.23, 0), 0.28, 0.72, shirt)
-    _sphere(root, "Head", Vector3(0, 1.86, 0), Vector3(0.30, 0.34, 0.30), skin)
-    _limb(root, "ArmL", Vector3(-0.38, 1.30, 0), Vector3(0.14, 0.66, 0.14), shirt)
-    _limb(root, "ArmR", Vector3(0.38, 1.30, 0), Vector3(0.14, 0.66, 0.14), shirt)
-    _limb(root, "LegL", Vector3(-0.15, 0.58, 0), Vector3(0.18, 0.90, 0.20), trousers)
-    _limb(root, "LegR", Vector3(0.15, 0.58, 0), Vector3(0.18, 0.90, 0.20), trousers)
-    _box(root, "ShoeL", Vector3(-0.15, 0.12, -0.06), Vector3(0.22, 0.16, 0.38), shoes)
-    _box(root, "ShoeR", Vector3(0.15, 0.12, -0.06), Vector3(0.22, 0.16, 0.38), shoes)
-    var cap := _cylinder(root, "Cap", Vector3(0, 2.18, 0), 0.28, 0.10, Color("#202428"))
-    cap.scale.z = 1.08
+    var shirt := Color(str(style.get("shirt", "#284c63")))
+    var shirt_dark := shirt.darkened(0.18)
+    var trousers := Color(str(style.get("trousers", "#252a30")))
+    var shoes := Color(str(style.get("shoes", "#17191c")))
+    var hair := Color("#1b1715")
+
+    # Human-shaped authored fallback. It stays inexpensive enough for mobile crowds,
+    # while avoiding the old stick/block silhouette when no external character asset exists.
+    _capsule(root, "Torso", Vector3(0, 1.26, 0), 0.29, 0.78, shirt)
+    _box(root, "Waist", Vector3(0, 0.91, 0), Vector3(0.48, 0.22, 0.30), shirt_dark)
+    _cylinder(root, "Neck", Vector3(0, 1.72, 0), 0.105, 0.18, skin)
+    _sphere(root, "Head", Vector3(0, 1.98, 0), Vector3(0.29, 0.34, 0.29), skin)
+    var hair_cap := _sphere(root, "Hair", Vector3(0, 2.12, 0.02), Vector3(0.295, 0.17, 0.295), hair)
+    hair_cap.position.z = 0.035
+    _sphere(root, "EarL", Vector3(-0.295, 1.99, 0), Vector3(0.055, 0.075, 0.045), skin)
+    _sphere(root, "EarR", Vector3(0.295, 1.99, 0), Vector3(0.055, 0.075, 0.045), skin)
+    _box(root, "Nose", Vector3(0, 1.99, -0.275), Vector3(0.075, 0.11, 0.08), skin)
+
+    var arm_l := _capsule(root, "ArmL", Vector3(-0.40, 1.28, 0), 0.095, 0.66, shirt)
+    arm_l.rotation_degrees.z = -6.0
+    var arm_r := _capsule(root, "ArmR", Vector3(0.40, 1.28, 0), 0.095, 0.66, shirt)
+    arm_r.rotation_degrees.z = 6.0
+    _sphere(root, "HandL", Vector3(-0.43, 0.92, 0), Vector3(0.10, 0.11, 0.085), skin)
+    _sphere(root, "HandR", Vector3(0.43, 0.92, 0), Vector3(0.10, 0.11, 0.085), skin)
+
+    var leg_l := _capsule(root, "LegL", Vector3(-0.15, 0.53, 0), 0.115, 0.86, trousers)
+    leg_l.rotation_degrees.z = -1.5
+    var leg_r := _capsule(root, "LegR", Vector3(0.15, 0.53, 0), 0.115, 0.86, trousers)
+    leg_r.rotation_degrees.z = 1.5
+    _box(root, "ShoeL", Vector3(-0.15, 0.10, -0.085), Vector3(0.24, 0.17, 0.40), shoes)
+    _box(root, "ShoeR", Vector3(0.15, 0.10, -0.085), Vector3(0.24, 0.17, 0.40), shoes)
+
+    # Small Tunis streetwear details improve silhouette/readability in third person.
+    _box(root, "ShirtPlacket", Vector3(0, 1.33, -0.285), Vector3(0.035, 0.48, 0.025), shirt_dark)
+    _box(root, "Belt", Vector3(0, 0.89, -0.04), Vector3(0.48, 0.065, 0.32), Color("#332b26"))
+    _box(root, "BeltBuckle", Vector3(0, 0.89, -0.208), Vector3(0.10, 0.07, 0.025), Color("#8c8171"))
     return root
 
 static func _mat(color: Color, roughness := 0.82) -> StandardMaterial3D:
@@ -71,9 +94,6 @@ static func _box(parent: Node3D, name: String, pos: Vector3, size: Vector3, colo
     parent.add_child(mi)
     return mi
 
-static func _limb(parent: Node3D, name: String, pos: Vector3, size: Vector3, color: Color) -> MeshInstance3D:
-    return _box(parent, name, pos, size, color)
-
 static func _cylinder(parent: Node3D, name: String, pos: Vector3, radius: float, height: float, color: Color) -> MeshInstance3D:
     var mi := MeshInstance3D.new()
     mi.name = name
@@ -81,6 +101,21 @@ static func _cylinder(parent: Node3D, name: String, pos: Vector3, radius: float,
     mesh.top_radius = radius
     mesh.bottom_radius = radius
     mesh.height = height
+    mesh.radial_segments = 12
+    mi.mesh = mesh
+    mi.position = pos
+    mi.material_override = _mat(color)
+    parent.add_child(mi)
+    return mi
+
+static func _capsule(parent: Node3D, name: String, pos: Vector3, radius: float, height: float, color: Color) -> MeshInstance3D:
+    var mi := MeshInstance3D.new()
+    mi.name = name
+    var mesh := CapsuleMesh.new()
+    mesh.radius = radius
+    mesh.height = height
+    mesh.radial_segments = 12
+    mesh.rings = 4
     mi.mesh = mesh
     mi.position = pos
     mi.material_override = _mat(color)
@@ -93,6 +128,8 @@ static func _sphere(parent: Node3D, name: String, pos: Vector3, scale_value: Vec
     var mesh := SphereMesh.new()
     mesh.radius = 0.5
     mesh.height = 1.0
+    mesh.radial_segments = 12
+    mesh.rings = 6
     mi.mesh = mesh
     mi.position = pos
     mi.scale = scale_value

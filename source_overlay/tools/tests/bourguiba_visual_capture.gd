@@ -120,8 +120,8 @@ func _run() -> void:
         ["02_sidewalk_view", Vector3(-72, 1.7, 25), Vector3(60, 3, 28)],
         ["03_facade_close_view", Vector3(-30, 3.0, 13), Vector3(-30, 8, 35)],
         ["04_intersection_view", Vector3(115, 3.0, -24), Vector3(-15, 3, 8)],
-        ["05_player_street_view", Vector3(78, 3, 30), Vector3(63, 1, 24)],
-        ["06_taxi_view", Vector3(86, 2, 14), Vector3(78, 1, 18)]
+        ["05_player_street_view", Vector3(70, 2.35, 16.5), Vector3(63, 1.35, 24)],
+        ["06_taxi_view", Vector3(84, 2.25, 10.5), Vector3(78, 1.05, 14.7)]
     ]
     var transform := Transform3D(Basis(Vector3.UP, atan(0.12)), Vector3(-130, 0, 30))
     var captures: Array = []
