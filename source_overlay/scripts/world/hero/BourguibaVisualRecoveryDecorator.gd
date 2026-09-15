@@ -206,7 +206,10 @@ func _naturalize_ficus_rows() -> void:
             var token := float(i)
             var delta := Vector3(sin(token*1.71)*.58, 0.0, cos(token*1.13)*.28)
             mesh_node.position += delta
-            var terminal_clearance := absf(mesh_node.position.x) > 109.0
+            # Real intersections need a clear visibility envelope. The hero row
+            # originally put a full crown at x ~= 102.6 directly beside each
+            # zebra crossing, blocking both driver and camera sightlines.
+            var terminal_clearance := absf(mesh_node.position.x) > 98.0
             var width_scale := .90 + float((i*7)%6)*.042
             var height_scale := .90 + float((i*5)%7)*.036
             if absf(mesh_node.position.x) > 92.0:
