@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
-      EXPECTED_RUNTIME_SOURCE_TREE: 'bc30bc657df060737ce8e3933f823b64b3eaa5b17c1d05a2a477fb91e3b5a537'
+      EXPECTED_RUNTIME_SOURCE_TREE: 'c7a121f4de85c74369070f083d5c11d4835e351c360ea883c9a5bfbcaa700d1b'
       EXPECTED_RUNTIME_SOURCE_FILES: '96'
       VERSION_NAME: '0.53.35'
     steps:
