@@ -8,6 +8,7 @@ on:
       - 'raw_source_packs/**'
       - 'source_overlay/**'
       - 'source_overlay_packs/**'
+      - 'tools/source/hydrate_visual_assets.sh'
       - '.github/workflows/hayat-runtime-source-identity.yml'
 
 permissions:
@@ -52,6 +53,12 @@ jobs:
                   if src.is_file():
                       target=out/src.relative_to(loose); target.parent.mkdir(parents=True,exist_ok=True); target.write_bytes(src.read_bytes())
           PY
+      - name: Hydrate pinned production visual assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash tools/source/hydrate_visual_assets.sh _project | tee visual-assets.log
+          grep -F 'VISUAL_ASSET_READY' visual-assets.log
       - name: Verify byte-identical runtime/export source identity
         shell: bash
         run: |
@@ -87,7 +94,9 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: hayat-tounes-runtime-source-identity-${{ github.run_id }}
+          name: tounsi-3ayach-runtime-source-identity-${{ github.run_id }}
           if-no-files-found: error
           retention-days: 14
-          path: runtime-source-identity-ci.json
+          path: |
+            runtime-source-identity-ci.json
+            visual-assets.log
