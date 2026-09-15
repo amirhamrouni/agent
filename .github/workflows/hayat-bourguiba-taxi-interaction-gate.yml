@@ -6,6 +6,7 @@ on:
     branches: [ main ]
     paths:
       - 'source_overlay/tools/tests/bourguiba_taxi_interaction_test.gd'
+      - 'source_overlay/tools/tests/bourguiba_taxi_interaction_test.tscn'
       - '.github/workflows/hayat-bourguiba-taxi-interaction-gate.yml'
       - 'source_overlay/scripts/vehicles/**'
       - 'source_overlay/scripts/vertical_slice/TaxiFareDirector.gd'
@@ -52,7 +53,7 @@ jobs:
               for src in loose.rglob('*'):
                   if src.is_file():
                       target = out / src.relative_to(loose); target.parent.mkdir(parents=True, exist_ok=True); target.write_bytes(src.read_bytes())
-          for req in ['project.godot','autoload/GameState.gd','scripts/vehicles/ArcadeVehicle.gd','scripts/vertical_slice/TaxiFareDirector.gd','tools/tests/bourguiba_taxi_interaction_test.gd']:
+          for req in ['project.godot','autoload/GameState.gd','scripts/vehicles/ArcadeVehicle.gd','scripts/vertical_slice/TaxiFareDirector.gd','tools/tests/bourguiba_taxi_interaction_test.gd','tools/tests/bourguiba_taxi_interaction_test.tscn']:
               if not (out/req).is_file(): raise SystemExit('MISSING_REQUIRED:'+req)
           print('TAXI_INTERACTION_RECONSTRUCT_PASS')
           PY
@@ -85,7 +86,7 @@ jobs:
         run: |
           set -euo pipefail
           cd _project
-          "$GODOT_BIN" --headless --path . --script res://tools/tests/bourguiba_taxi_interaction_test.gd 2>&1 | tee ../taxi-interaction-runtime.log
+          "$GODOT_BIN" --headless --path . res://tools/tests/bourguiba_taxi_interaction_test.tscn 2>&1 | tee ../taxi-interaction-runtime.log
           cd ..
           grep -F 'BOURGUIBA_TAXI_INTERACTION_GATE_PASS' taxi-interaction-runtime.log
           if grep -E 'SCRIPT ERROR:|Parse Error:|BOURGUIBA_TAXI_.*INVALID' taxi-interaction-runtime.log; then exit 72; fi
