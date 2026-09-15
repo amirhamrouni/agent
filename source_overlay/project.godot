@@ -11,6 +11,7 @@ SaveService="*res://autoload/SaveService.gd"
 RuntimeDiagnostics="*res://autoload/RuntimeDiagnostics.gd"
 SettingsService="*res://autoload/SettingsService.gd"
 SessionGuard="*res://autoload/SessionGuard.gd"
+VisualRecoveryHotfix="*res://scripts/core/VisualRecoveryHotfix.gd"
 
 [display]
 window/size/viewport_width=1280
