@@ -1,5 +1,5 @@
 [application]
-config/name="Hayat Tounes 3D"
+config/name="Tounsi 3ayach"
 config/version="0.53.35"
 config/icon="res://assets/branding/hayat_tounes_icon.svg"
 run/main_scene="res://main_production.tscn"
