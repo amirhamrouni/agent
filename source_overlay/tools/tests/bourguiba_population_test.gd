@@ -4,6 +4,10 @@ const PopulationSpawnerScript = preload("res://scripts/world/PopulationSpawner.g
 
 func _initialize() -> void:
     var spawner = PopulationSpawnerScript.new()
+    # This gate verifies deterministic population construction/budgets, not agent movement.
+    # Disable processing before entering the tree so spawned CharacterBody3D agents cannot
+    # run physics while the structural assertions execute in headless CI.
+    spawner.process_mode = Node.PROCESS_MODE_DISABLED
     root.add_child(spawner)
 
     var expected := {
