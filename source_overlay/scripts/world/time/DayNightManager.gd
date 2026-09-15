@@ -23,20 +23,19 @@ func _apply_time_state() -> void:
     var daylight: float = clampf(sin(((hours - 6.0) / 12.0) * PI), 0.0, 1.0)
     sun.rotation_degrees.x = lerpf(-8.0, -62.0, daylight)
 
-    # Physical Android evidence showed the old daytime curve clipping most stone,
-    # pavement and facade values into white around 10:00. Keep a clear Tunisian
-    # daylight read while preserving mid-tone contrast on mobile GL Compatibility.
+    # Physical-device calibrated curve: enough fill for shaded shopfronts and
+    # characters, while ACES keeps bright Tunisian stone below clipping.
     var sun_energy := 0.03
     var ambient_energy := 0.08
     if daylight > 0.01:
-        sun_energy = lerpf(0.34, 0.68, daylight)
-        ambient_energy = lerpf(0.14, 0.26, daylight)
+        sun_energy = lerpf(0.50, 0.82, daylight)
+        ambient_energy = lerpf(0.28, 0.42, daylight)
     sun.light_energy = sun_energy
     sun.light_color = Color("#f1d4a4")
 
     if world_environment and world_environment.environment:
         world_environment.environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-        world_environment.environment.ambient_light_color = Color("#9eabb0")
+        world_environment.environment.ambient_light_color = Color("#aeb8bb")
         world_environment.environment.ambient_light_energy = ambient_energy
         world_environment.environment.fog_enabled = false
         world_environment.environment.tonemap_mode = Environment.TONE_MAPPER_ACES
