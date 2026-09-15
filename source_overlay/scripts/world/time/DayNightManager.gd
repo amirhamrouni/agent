@@ -23,17 +23,20 @@ func _apply_time_state() -> void:
     var daylight: float = clampf(sin(((hours - 6.0) / 12.0) * PI), 0.0, 1.0)
     sun.rotation_degrees.x = lerpf(-8.0, -62.0, daylight)
 
-    # The previous curve treated 08:00 as half-night (sun ~0.48, ambient ~0.24),
-    # which crushed every shaded pavement/facade in the real ProductionWorld
-    # captures. Keep night genuinely dark, but once the sun is above the horizon
-    # use a Tunis daylight floor and converge on the validated lighting profile.
-    var sun_energy := 0.05
-    var ambient_energy := 0.14
+    # Physical Android evidence showed the old daytime curve clipping most stone,
+    # pavement and facade values into white around 10:00. Keep a clear Tunisian
+    # daylight read while preserving mid-tone contrast on mobile GL Compatibility.
+    var sun_energy := 0.03
+    var ambient_energy := 0.08
     if daylight > 0.01:
-        sun_energy = lerpf(0.40, 1.18, daylight)
-        ambient_energy = lerpf(0.34, 0.62, daylight)
+        sun_energy = lerpf(0.34, 0.68, daylight)
+        ambient_energy = lerpf(0.14, 0.26, daylight)
     sun.light_energy = sun_energy
+    sun.light_color = Color("#f1d4a4")
 
     if world_environment and world_environment.environment:
+        world_environment.environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+        world_environment.environment.ambient_light_color = Color("#9eabb0")
         world_environment.environment.ambient_light_energy = ambient_energy
-        world_environment.environment.tonemap_mode = Environment.TONE_MAPPER_FILMIC
+        world_environment.environment.fog_enabled = false
+        world_environment.environment.tonemap_mode = Environment.TONE_MAPPER_ACES
