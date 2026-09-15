@@ -8,6 +8,7 @@ on:
       - 'raw_source_packs/**'
       - 'source_overlay/**'
       - 'source_overlay_packs/**'
+      - 'tools/source/hydrate_visual_assets.sh'
       - '.github/workflows/hayat-bourguiba-visual-gate.yml'
 
 permissions:
@@ -86,6 +87,14 @@ jobs:
               raise SystemExit('MISSING_REQUIRED:' + ','.join(missing))
           print('VISUAL_SOURCE_RECONSTRUCT_PASS')
           PY
+
+      - name: Hydrate pinned CC0 visual assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash tools/source/hydrate_visual_assets.sh _project | tee visual-assets.log
+          test -s _project/assets/external/quaternius_character/character.glb
+          grep -F 'VISUAL_ASSET_READY' visual-assets.log
 
       - name: Install exact Godot 4.7.2 and Xvfb
         shell: bash
@@ -177,6 +186,7 @@ jobs:
           retention-days: 14
           path: |
             godot-version.txt
+            visual-assets.log
             visual-import.log
             bourguiba-visual.log
             visual-image-sha256.txt
