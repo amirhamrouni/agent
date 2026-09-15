@@ -22,6 +22,6 @@ func _apply_time_state() -> void:
     var hours: float = float(world_clock.current_hour()) + float(world_clock.current_minute()) / 60.0
     var daylight: float = clampf(sin(((hours - 6.0) / 12.0) * PI), 0.0, 1.0)
     sun.rotation_degrees.x = lerpf(-8.0, -62.0, daylight)
-    sun.light_energy = lerpf(0.08, 1.25, daylight)
+    sun.light_energy = lerpf(0.05, 0.90, daylight)
     if world_environment and world_environment.environment:
-        world_environment.environment.ambient_light_energy = lerpf(0.16, 0.72, daylight)
+        world_environment.environment.ambient_light_energy = lerpf(0.12, 0.35, daylight)

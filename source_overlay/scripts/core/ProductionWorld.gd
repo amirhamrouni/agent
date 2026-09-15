@@ -184,24 +184,31 @@ func _build_environment() -> void:
     var world_env = WorldEnvironment.new()
     world_environment_node = world_env
     var env = Environment.new()
-    env.background_mode = Environment.BG_COLOR
-    env.background_color = Color("#91b7cf")
+    env.background_mode = Environment.BG_SKY
+    var sky_material := ProceduralSkyMaterial.new()
+    sky_material.sky_top_color = Color("#5287bd")
+    sky_material.sky_horizon_color = Color("#b4cbd5")
+    sky_material.ground_bottom_color = Color("#4d5052")
+    sky_material.ground_horizon_color = Color("#b4cbd5")
+    var sky := Sky.new()
+    sky.sky_material = sky_material
+    env.sky = sky
     env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-    env.ambient_light_color = Color("#fff0d5")
-    env.ambient_light_energy = 0.72
+    env.ambient_light_color = Color("#c2d5e0")
+    env.ambient_light_energy = 0.35
     env.fog_enabled = true
-    env.fog_density = 0.0017
+    env.fog_density = 0.0005
     env.fog_light_color = Color("#c9d2d1")
-    env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
+    env.tonemap_mode = Environment.TONE_MAPPER_LINEAR
     world_env.environment = env
     add_child(world_env)
 
     sun = DirectionalLight3D.new()
     sun.rotation_degrees = Vector3(-48, -35, 0)
-    sun.light_color = Color("#fff0ca")
-    sun.light_energy = 1.25
+    sun.light_color = Color("#fff2df")
+    sun.light_energy = 0.85
     sun.shadow_enabled = true
-    sun.directional_shadow_max_distance = 120.0
+    sun.directional_shadow_max_distance = 65.0
     add_child(sun)
 
 func _build_world_geometry() -> void:
@@ -522,7 +529,7 @@ func _build_mobile_input_router() -> void:
 func _build_player() -> void:
     player = PlayerController.new()
     player.name = "Player"
-    player.position = Vector3(-52,1.2,18)
+    player.position = Vector3(-130,0,30) + Basis(Vector3.UP,atan(.12))*Vector3(63,1.2,24)
 
     var cs = CollisionShape3D.new()
     var cap = CapsuleShape3D.new()
@@ -560,7 +567,7 @@ func _build_vehicles() -> void:
     _make_vehicle(Vector3(-20,1,2),"pickup_01","D-MAX inspired",Color("#e6e4dd"),Vector3(2.2,1.2,5.2))
     _make_vehicle(Vector3(24,1,-57),"pickup_404","404 bâchée inspired",Color("#789278"),Vector3(2.0,1.15,4.8))
     _make_vehicle(Vector3(58,1,24),"louage_01","لواج",Color("#f2f2ec"),Vector3(2.05,1.2,4.5))
-    _make_vehicle(Vector3(-58,1,61),"taxi_01","تاكسي تونس",Color("#e6c319"),Vector3(2.0,1.15,4.4))
+    _make_vehicle(Vector3(-130,0,30) + Basis(Vector3.UP,atan(.12))*Vector3(78,1,14.7),"taxi_01","تاكسي تونس",Color("#e6c319"),Vector3(2.0,1.15,4.4))
 
 func _make_vehicle(pos: Vector3, id: String, label: String, body_color: Color, size: Vector3) -> void:
     var v = ArcadeVehicle.new()
@@ -1088,8 +1095,7 @@ func _bind_runtime() -> void:
 func _apply_power_state() -> void:
     for l in street_lights:
         l.visible = not GameState.blackout_active
-    if sun:
-        sun.light_energy = 0.45 if GameState.blackout_active else 1.25
+    # Electricity outages affect street lamps, never sunlight.
 
 
 func build_world_snapshot() -> Dictionary:
@@ -1225,6 +1231,7 @@ func _build_hero_area() -> void:
     if osm_world != null:
         for child in osm_world.get_children():
             if child is MeshInstance3D:
+                child.visibility_range_end = 240.0
                 var bounds: AABB = child.get_aabb()
                 var centre: Vector3 = child.position + bounds.get_center()
                 if BourguibaHeroArea.contains_world(centre):

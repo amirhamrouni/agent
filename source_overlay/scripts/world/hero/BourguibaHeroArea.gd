@@ -15,6 +15,7 @@ func build() -> void:
     _street()
     for i in range(4):
         shared_meshes["facade%d"%i] = HeroMeshKit.facade(i)
+        shared_meshes["facade_lod%d"%i] = HeroMeshKit.facade(i,false)
     shared_meshes["palm"] = HeroMeshKit.palm(true)
     shared_meshes["palm_lod"] = HeroMeshKit.palm(false)
     shared_meshes["ficus"] = HeroMeshKit.ficus(true)
@@ -27,7 +28,12 @@ func build() -> void:
                 continue
             var node := _instance(shared_meshes["facade%d"%(i%4)],Vector3(x,.18,side*30),"Facade_%s_%02d"%[str(side),i])
             node.rotation.y = PI if side<0 else 0.0
-            node.visibility_range_end = 260.0
+            node.visibility_range_end = 60.0
+            var lod := _instance(shared_meshes["facade_lod%d"%(i%4)],node.position,"FacadeLOD")
+            lod.rotation = node.rotation
+            lod.visibility_range_begin = 60
+            lod.visibility_range_end = 240
+            lod.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
             _shop_sign(Vector3(x,3.7,side*29.7),side,i)
     _instance(shared_meshes["theatre"],Vector3(-24,.18,32),"MunicipalTheatre")
     var title := Label3D.new()

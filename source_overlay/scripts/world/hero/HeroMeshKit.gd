@@ -5,6 +5,7 @@ class_name HeroMeshKit
 # MeshInstance per architectural detail. Metres; facade front is negative Z.
 var surfaces: Dictionary = {}
 var materials: Dictionary = {}
+static var foliage_texture: ImageTexture
 
 func material(id: String, color: Color, roughness: float = 0.85, metallic: float = 0.0) -> void:
     var m := StandardMaterial3D.new()
@@ -13,6 +14,9 @@ func material(id: String, color: Color, roughness: float = 0.85, metallic: float
     m.metallic = metallic
     if id.begins_with("leaf"):
         m.cull_mode = BaseMaterial3D.CULL_DISABLED
+        m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
+        m.alpha_scissor_threshold = 0.45
+        m.albedo_texture = leaf_texture()
     materials[id] = m
 
 func triangle(id: String, a: Vector3, b: Vector3, c: Vector3) -> void:
@@ -84,12 +88,12 @@ func palette(tone: Color) -> void:
     material("wood",Color("#574335"))
     material("fabric",Color("#7b3434"),1.0)
 
-func window(x: float, y: float, width: float, height: float, balcony: bool) -> void:
+func window(x: float, y: float, width: float, height: float, balcony: bool, detail: bool = true) -> void:
     box("glass",Vector3(x,y,0.18),Vector3(width,height,0.08))
     for dx in [-width/2-0.09,width/2+0.09]:
         box("trim",Vector3(x+dx,y,-0.10),Vector3(0.16,height+0.28,0.26))
         box("shutter",Vector3(x+dx+signf(dx)*0.30,y,-0.035),Vector3(0.42,height,0.10))
-        for j in range(12):
+        for j in range(12 if detail else 0):
             box("iron",Vector3(x+dx+signf(dx)*0.30,y-height/2+0.08+j*height/12,-0.098),Vector3(0.34,0.027,0.025))
     box("trim",Vector3(x,y+height/2+0.10,-0.12),Vector3(width+0.38,0.17,0.30))
     box("stone",Vector3(x,y-height/2-0.07,-0.22),Vector3(width+0.45,0.13,0.48))
@@ -99,13 +103,13 @@ func window(x: float, y: float, width: float, height: float, balcony: bool) -> v
         var floor_y := y-height/2-0.15
         box("stone",Vector3(x,floor_y,-0.58),Vector3(width+0.75,0.16,1.12))
         tube("iron",Vector3(x-width/2-0.3,floor_y+1.05,-1.06),Vector3(x+width/2+0.3,floor_y+1.05,-1.06),0.028,0.028)
-        for j in range(10):
+        for j in range(10 if detail else 0):
             var bx: float = x-width/2-0.23+j*(width+0.46)/9
             tube("iron",Vector3(bx,floor_y+0.08,-1.06),Vector3(bx,floor_y+1.03,-1.06),0.015,0.015,5)
         for dx in [-width/2-0.30,width/2+0.30]:
             tube("iron",Vector3(x+dx,floor_y+1.05,-1.06),Vector3(x+dx,floor_y+1.05,0),0.025,0.025)
 
-static func facade(variant: int) -> ArrayMesh:
+static func facade(variant: int, detail: bool = true) -> ArrayMesh:
     var k := HeroMeshKit.new()
     var tones := [Color("#c4b496"),Color("#d2cbbd"),Color("#c3b6a3"),Color("#dacbb4")]
     k.palette(tones[variant%4])
@@ -128,7 +132,7 @@ static func facade(variant: int) -> ArrayMesh:
             k.box("wall",Vector3(x+1.11,y,0),Vector3(0.78,3.3,0.42))
             k.box("wall",Vector3(x,y+1.32,0),Vector3(1.44,0.66,0.42))
             k.box("wall",Vector3(x,y-1.36,0),Vector3(1.44,0.58,0.42))
-            k.window(x,y,1.34,2.05,(bay+variant)%2==0)
+            k.window(x,y,1.34,2.05,(bay+variant)%2==0,detail)
             y += 3.3
     for y in [4.35,7.95,11.25,height-0.60,height-0.30,height]:
         k.box("trim",Vector3(0,y,-0.10),Vector3(18.12,0.15,0.60 if y>height-1 else 0.26))
@@ -164,7 +168,7 @@ static func palm(detail: bool = true) -> ArrayMesh:
             k.tube("bark",a,b,.025*(1-t)+.005,.025*(1-t2)+.005,4)
             for sign_value: float in [-1.0,1.0]:
                 var tip := a+side*sign_value*(.65*sin(PI*t)+.05)-dir*.38+Vector3(0,-.18,0)
-                k.triangle("leaf" if j%3 else "leaf_light",a-dir*.05,tip,b)
+                k.leaf_card("leaf" if j%3 else "leaf_light",(a+tip)*.5,(tip-a)*.5,(b-a)*.45)
     return k.mesh()
 
 static func ficus(detail: bool = true) -> ArrayMesh:
@@ -187,9 +191,8 @@ static func ficus(detail: bool = true) -> ArrayMesh:
         var u := Vector3(rng.randf_range(.3,1),rng.randf_range(-.5,.5),rng.randf_range(-1,1)).normalized()*size
         var v := u.cross(Vector3.UP).normalized()*size*.65
         var id := "leaf_light" if j%4==0 else "leaf"
-        k.triangle(id,p-u,p+v,p+u)
-        k.triangle(id,p-u,p+u,p-v)
-        k.triangle(id,p-u,p+Vector3(0,size,0),p+u)
+        k.leaf_card(id,p,u,v)
+        k.leaf_card(id,p,u,Vector3(0,size,0))
     return k.mesh()
 
 static func theatre() -> ArrayMesh:
@@ -231,3 +234,37 @@ static func theatre() -> ArrayMesh:
     for step in range(7):
         k.box("stone",Vector3(0,.075+step*.15,-2.0+step*.32),Vector3(27-step*.1,.15,4.0-step*.64))
     return k.mesh()
+
+static func leaf_texture() -> ImageTexture:
+    if foliage_texture != null:
+        return foliage_texture
+    var image := Image.create(128,128,false,Image.FORMAT_RGBA8)
+    image.fill(Color(0,0,0,0))
+    # Original 3x3 foliage atlas, pointed oval leaves with a central vein.
+    for y in range(128):
+        for x in range(128):
+            var cell_x := x%43
+            var cell_y := y%43
+            var u := (float(cell_x)-21.0)/18.0
+            var v := (float(cell_y)-21.0)/20.0
+            if absf(u) < (1.0-v*v)*.62 and absf(v)<1.0:
+                var vein := .15 if absf(u)<.035 else 0.0
+                var shade := .72+.20*(1.0-absf(u))+vein
+                image.set_pixel(x,y,Color(shade,shade,.82*shade,1.0))
+    image.generate_mipmaps()
+    foliage_texture = ImageTexture.create_from_image(image)
+    return foliage_texture
+
+func leaf_card(id: String, p: Vector3, u: Vector3, v: Vector3) -> void:
+    if not surfaces.has(id):
+        var new_surface := SurfaceTool.new()
+        new_surface.begin(Mesh.PRIMITIVE_TRIANGLES)
+        surfaces[id] = new_surface
+    var s: SurfaceTool = surfaces[id]
+    var normal := u.cross(v).normalized()
+    var points := [p-u-v,p+u-v,p+u+v,p-u+v]
+    var uv := [Vector2(0,0),Vector2(1,0),Vector2(1,1),Vector2(0,1)]
+    for index in [0,2,1,0,3,2]:
+        s.set_normal(normal)
+        s.set_uv(uv[index])
+        s.add_vertex(points[index])
