@@ -68,8 +68,6 @@ func _recover_facade_depth() -> void:
             for bay in range(6):
                 var x := bx - 7.5 + float(bay) * 3.0
                 var interior_id := "interior_warm" if (bay + building_index) % 3 != 0 else "interior_cool"
-                # Recessed shop light and dark reflective pane give the ground floor
-                # actual depth instead of six identical opaque rectangles.
                 k.box(interior_id, Vector3(x, 1.88, side * 29.86), Vector3(2.34, 3.45, .055))
                 k.box("glass_deep", Vector3(x, 1.90, facade_z), Vector3(2.24, 3.34, .045))
                 k.box("frame", Vector3(x-.43, 1.90, side*29.64), Vector3(.07, 3.34, .11))
@@ -81,12 +79,9 @@ func _recover_facade_depth() -> void:
                     k.box("brass", Vector3(x+.27, 1.55, side*29.40), Vector3(.04, .12, .035))
                 k.box(signs[variant], Vector3(x, 3.47, side*29.49), Vector3(2.58, .54, .18))
                 k.box("brass", Vector3(x, 3.16, side*29.38), Vector3(2.58, .045, .04))
-                # A projecting valance is readable at phone resolution and creates
-                # strong repeated shadows without adding many draw calls.
                 k.box(awnings[variant], Vector3(x, 2.70, outward_z), Vector3(2.68, .26, .62))
                 if (bay + variant) % 2 == 0:
                     k.box("stone_dark", Vector3(x, .42, side*29.48), Vector3(2.76, .80, .34))
-            # Break the rectangular roof line with restrained parapet posts.
             for px in range(-8, 9, 2):
                 k.box("stone_dark", Vector3(bx+float(px), 15.15+float(variant%3)*3.3, side*29.78), Vector3(.34, .54, .34))
     var node := _mesh_node(k.mesh(), "RecoveredFacadeDepth")
@@ -104,7 +99,6 @@ func _recover_public_life() -> void:
     k.material("glass", Color("#29434a"), .19, .16)
     k.material("paper", Color("#e7ddc5"), .92)
     k.material("white", Color("#e8e3d5"), .88)
-    # Café clusters sit against shop fronts, leaving the kerb-side walking line open.
     var cafe_xs := [-84.0, -50.0, -12.0, 42.0, 78.0]
     for side: float in [-1.0, 1.0]:
         for ci in range(cafe_xs.size()):
@@ -130,7 +124,6 @@ func _recover_public_life() -> void:
                 var px := cx+planter_dx
                 k.box("ceramic", Vector3(px,.40,side*26.35), Vector3(.72,.66,.72))
                 k.box("plant", Vector3(px,.88,side*26.35), Vector3(.88,.42,.88))
-    # Newspaper/refreshment kiosks create recognisable street-service nodes.
     for index in range(2):
         var kx := -64.0 if index == 0 else 58.0
         var side := -1.0 if index == 0 else 1.0
@@ -139,7 +132,6 @@ func _recover_public_life() -> void:
         k.box("glass", Vector3(kx,1.42,kz-side*1.02), Vector3(2.18,.82,.045))
         k.box("red", Vector3(kx,2.50,kz), Vector3(3.45,.18,2.40))
         k.box("paper", Vector3(kx,2.66,kz-side*.86), Vector3(2.0,.25,.07))
-    # Bollards give the sidewalks scale in close gameplay shots.
     for side: float in [-1.0,1.0]:
         for x in range(-102, 103, 12):
             k.tube("iron", Vector3(float(x),.14,side*20.0), Vector3(float(x),.80,side*20.0), .085,.07,8)
@@ -152,7 +144,6 @@ func _recover_tunis_identity() -> void:
     k.material("flag_red", Color("#b01823"), .90)
     k.material("flag_white", Color("#f2eee2"), .86)
     k.material("pole", Color("#32383a"), .52, .40)
-    # Banners use two shallow discs to read as Tunisia's crescent at gameplay distance.
     for side: float in [-1.0, 1.0]:
         for x: float in [-86.0, -38.0, 22.0, 76.0]:
             var z := side*22.0
@@ -176,17 +167,10 @@ func _recover_theatre_front() -> void:
     k.material("stone_mid", Color("#8f8878"), .86)
     k.material("stone_shadow", Color("#68665f"), .90)
     k.material("poster", Color("#d9c8a3"), .70)
-
-    # Municipal Theatre front is the visual anchor of this slice. Build shallow
-    # architectural relief over Astra's base mesh so the facade reads in grazing
-    # morning light instead of as one flat grey polygon.
     k.box("stone_shadow", Vector3(-24,.60,30.92), Vector3(22.2,1.05,.22))
     k.box("theatre_dark", Vector3(-24,5.52,30.86), Vector3(14.8,.72,.18))
     k.box("brass", Vector3(-24,5.13,30.72), Vector3(14.8,.055,.04))
     k.box("theatre_red", Vector3(-24,4.66,29.80), Vector3(16.0,.22,1.92))
-
-    # Vertical pilasters and stepped cornices add the depth cues missing from the
-    # fixed close camera. End pilasters also separate the theatre from neighbours.
     for x: float in [-34.2, -31.0, -27.0, -21.0, -17.0, -13.8]:
         var height := 8.0 if x in [-31.0, -27.0, -21.0, -17.0] else 10.8
         var centre_y := 7.45 if height < 10.0 else 8.30
@@ -195,9 +179,6 @@ func _recover_theatre_front() -> void:
     k.box("stone_mid", Vector3(-24,12.22,30.87), Vector3(21.0,.34,.42))
     k.box("stone_shadow", Vector3(-24,12.51,30.78), Vector3(19.6,.18,.20))
     k.box("brass", Vector3(-24,12.69,30.68), Vector3(17.8,.055,.055))
-
-    # Recessed entrance doors, transoms and poster cases make the ground floor
-    # read as an operating theatre instead of three black holes.
     for x: float in [-30.0,-24.0,-18.0]:
         k.box("warm", Vector3(x,2.66,31.72), Vector3(3.2,3.70,.055))
         k.box("theatre_dark", Vector3(x,2.66,31.60), Vector3(2.90,3.42,.05))
@@ -208,13 +189,9 @@ func _recover_theatre_front() -> void:
         k.box("brass", Vector3(poster_x,2.33,30.47), Vector3(1.55,2.55,.10))
         k.box("poster", Vector3(poster_x,2.33,30.40), Vector3(1.34,2.30,.035))
         k.box("theatre_red", Vector3(poster_x,1.52,30.36), Vector3(1.12,.28,.025))
-
-    # Small marquee lamps are modeled, not real lights, to keep the mobile light
-    # budget unchanged while adding readable warm punctuation at phone resolution.
     for lamp_i in range(9):
         var lx := -31.2 + float(lamp_i) * 1.8
         k.box("brass", Vector3(lx,4.48,29.61), Vector3(.13,.13,.13))
-
     var node := _mesh_node(k.mesh(), "RecoveredTheatreFront")
     node.visibility_range_end = 120.0
     _identity_label(Vector3(-24,5.52,30.58), PI, "THÉÂTRE MUNICIPAL  •  المسرح البلدي", 44, 90.0)
@@ -229,21 +206,21 @@ func _naturalize_ficus_rows() -> void:
             var token := float(i)
             var delta := Vector3(sin(token*1.71)*.58, 0.0, cos(token*1.13)*.28)
             mesh_node.position += delta
+            var terminal_clearance := absf(mesh_node.position.x) > 109.0
             var width_scale := .90 + float((i*7)%6)*.042
             var height_scale := .90 + float((i*5)%7)*.036
-            # Trees immediately beside the terminal crossings are intentionally
-            # narrower, as real street trees are crown-lifted/pruned for sightlines.
-            # This fixes the production intersection view without deleting foliage.
             if absf(mesh_node.position.x) > 92.0:
-                width_scale *= .66
+                width_scale *= .72
                 height_scale *= 1.04
             mesh_node.scale = Vector3(width_scale,height_scale,width_scale*.96)
             mesh_node.rotation.y += sin(token*.63)*.24
+            mesh_node.visible = not terminal_clearance
             if i+1 < children.size() and children[i+1] is MeshInstance3D and str(children[i+1].name).begins_with("FicusLOD"):
                 var lod := children[i+1] as MeshInstance3D
                 lod.position = mesh_node.position
                 lod.scale = mesh_node.scale
                 lod.rotation = mesh_node.rotation
+                lod.visible = not terminal_clearance
         i += 1
 
 func _identity_label(pos: Vector3, yaw: float, text_value: String, size: int, range_end: float) -> void:
