@@ -101,60 +101,45 @@ func _capture(camera: Camera3D, position: Vector3, target: Vector3, filename: St
 
 func _run() -> void:
     root.size = Vector2i(WIDTH, HEIGHT)
-
-    var scene := Node3D.new()
-    scene.name = "BourguibaVisualEvidence"
+    seed(20260915)
+    var packed = load("res://main_production.tscn")
+    var scene = packed.instantiate()
     root.add_child(scene)
-    _add_ground(scene)
-    _configure_environment(scene)
-
-    var public_script = load("res://scripts/world/art/TunisPublicRealmPass.gd")
-    var facade_script = load("res://scripts/world/art/TunisFacadePass.gd")
-    if public_script == null or facade_script == null:
-        push_error("BOURGUIBA_VISUAL_REQUIRED_MODULE_MISSING")
-        quit(81)
-        return
-
-    var public_realm = public_script.new()
-    public_realm.name = "PublicRealm"
-    scene.add_child(public_realm)
-    public_realm.build()
-
-    var facades = facade_script.new()
-    facades.name = "Facades"
-    scene.add_child(facades)
-    facades.build()
-
+    current_scene = scene
+    for i in range(8):
+        await process_frame
+    scene.process_mode = Node.PROCESS_MODE_DISABLED
+    for child in scene.get_children():
+        if child is CanvasLayer:
+            child.hide()
+        elif child is Control:
+            child.hide()
     var camera := _make_camera(scene)
-    await process_frame
-    await process_frame
-
-    var avenue := await _capture(camera, Vector3(34.0, 17.0, 31.0), Vector3(5.0, 2.8, 0.0), "bourguiba-avenue.png")
-    if not avenue.get("ok", false):
-        push_error("BOURGUIBA_VISUAL_AVENUE_INVALID:%s" % JSON.stringify(avenue))
-        quit(82)
-        return
-
-    var storefront := await _capture(camera, Vector3(-24.0, 7.0, 25.0), Vector3(-24.0, 3.2, 12.5), "bourguiba-storefront.png")
-    if not storefront.get("ok", false):
-        push_error("BOURGUIBA_VISUAL_STOREFRONT_INVALID:%s" % JSON.stringify(storefront))
-        quit(83)
-        return
-
-    var evidence := {
-        "schema_version": 1,
-        "renderer": RenderingServer.get_current_rendering_method(),
-        "viewport": {"width": WIDTH, "height": HEIGHT},
-        "captures": [avenue, storefront],
-        "minimum_luma_spread": MIN_LUMA_SPREAD,
-        "minimum_non_background_ratio": MIN_NON_BACKGROUND_RATIO,
-    }
+    var views := [
+        ["01_avenue_long_view", Vector3(-105, 3.0, -5), Vector3(45, 4, 0)],
+        ["02_sidewalk_view", Vector3(-72, 1.7, 25), Vector3(60, 3, 28)],
+        ["03_facade_close_view", Vector3(-30, 3.0, 13), Vector3(-30, 8, 35)],
+        ["04_intersection_view", Vector3(115, 3.0, -24), Vector3(-15, 3, 8)],
+        ["05_player_street_view", Vector3(78, 3, 30), Vector3(63, 1, 24)],
+        ["06_taxi_view", Vector3(86, 2, 14), Vector3(78, 1, 18)]
+    ]
+    var transform := Transform3D(Basis(Vector3.UP, atan(0.12)), Vector3(-130, 0, 30))
+    var captures: Array = []
+    for view in views:
+        var result := await _capture(camera, transform * view[1], transform * view[2], str(view[0]) + ".png")
+        result["camera_position"] = [camera.position.x, camera.position.y, camera.position.z]
+        result["draw_calls"] = Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME)
+        result["objects"] = Performance.get_monitor(Performance.RENDER_TOTAL_OBJECTS_IN_FRAME)
+        result["primitives"] = Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME)
+        result["texture_memory_bytes"] = Performance.get_monitor(Performance.RENDER_TEXTURE_MEM_USED)
+        captures.append(result)
+        if not result.get("ok", false):
+            push_error("PRODUCTION_CAPTURE_FAILED:" + JSON.stringify(result))
+            quit(82)
+            return
+    var evidence := {"schema_version": 2, "scene": "res://main_production.tscn", "renderer": RenderingServer.get_current_rendering_method(), "captures": captures, "visual_acceptance": "PENDING_HUMAN_REVIEW", "physical_device_verified": false}
     var file := FileAccess.open(_capture_dir.path_join("bourguiba-visual-evidence.json"), FileAccess.WRITE)
-    if file == null:
-        push_error("BOURGUIBA_VISUAL_EVIDENCE_WRITE_FAILED")
-        quit(84)
-        return
     file.store_string(JSON.stringify(evidence, "  ") + "\n")
     file.close()
-    print("BOURGUIBA_VISUAL_GATE_PASS captures=2 renderer=%s" % evidence.renderer)
+    print("BOURGUIBA_VISUAL_GATE_PASS captures=6 capture_only=true visual_acceptance=PENDING_HUMAN_REVIEW")
     quit(0)

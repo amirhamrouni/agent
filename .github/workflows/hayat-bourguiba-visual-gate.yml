@@ -137,8 +137,8 @@ jobs:
           if grep -E 'SCRIPT ERROR:|Parse Error:|Failed to load script|BOURGUIBA_VISUAL_.*INVALID|BOURGUIBA_VISUAL_.*FAILED|BOURGUIBA_VISUAL_.*MISSING' bourguiba-visual.log; then
             exit 72
           fi
-          test -s _project/visual-evidence/bourguiba-avenue.png
-          test -s _project/visual-evidence/bourguiba-storefront.png
+          test -s _project/visual-evidence/01_avenue_long_view.png
+          test -s _project/visual-evidence/03_facade_close_view.png
           test -s _project/visual-evidence/bourguiba-visual-evidence.json
           sha256sum _project/visual-evidence/*.png | tee visual-image-sha256.txt
 
@@ -153,12 +153,12 @@ jobs:
 
           root = Path('_project/visual-evidence')
           evidence = json.loads((root / 'bourguiba-visual-evidence.json').read_text(encoding='utf-8'))
-          if evidence.get('schema_version') != 1:
+          if evidence.get('schema_version') != 2:
               raise SystemExit('VISUAL_EVIDENCE_SCHEMA_INVALID')
           captures = evidence.get('captures', [])
-          if len(captures) != 2 or not all(c.get('ok') for c in captures):
+          if len(captures) != 6 or not all(c.get('ok') for c in captures):
               raise SystemExit('VISUAL_EVIDENCE_CAPTURE_INVALID')
-          for name in ('bourguiba-avenue.png', 'bourguiba-storefront.png'):
+          for name in ('01_avenue_long_view.png', '02_sidewalk_view.png', '03_facade_close_view.png', '04_intersection_view.png', '05_player_street_view.png', '06_taxi_view.png'):
               data = (root / name).read_bytes()
               if data[:8] != b'\x89PNG\r\n\x1a\n':
                   raise SystemExit(f'VISUAL_PNG_INVALID:{name}')
@@ -180,6 +180,5 @@ jobs:
             visual-import.log
             bourguiba-visual.log
             visual-image-sha256.txt
-            _project/visual-evidence/bourguiba-avenue.png
-            _project/visual-evidence/bourguiba-storefront.png
+            _project/visual-evidence/*.png
             _project/visual-evidence/bourguiba-visual-evidence.json
