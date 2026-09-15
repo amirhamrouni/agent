@@ -18,8 +18,8 @@ func build() -> void:
         shared_meshes["facade_lod%d"%i] = HeroMeshKit.facade(i,false)
     shared_meshes["palm"] = HeroMeshKit.palm(true)
     shared_meshes["palm_lod"] = HeroMeshKit.palm(false)
-    shared_meshes["ficus"] = HeroMeshKit.ficus(true)
-    shared_meshes["ficus_lod"] = HeroMeshKit.ficus(false)
+    shared_meshes["ficus"] = NaturalFicusFactory.make(true)
+    shared_meshes["ficus_lod"] = NaturalFicusFactory.make(false)
     shared_meshes["theatre"] = HeroMeshKit.theatre()
     for side: float in [-1.0,1.0]:
         for i in range(13):
