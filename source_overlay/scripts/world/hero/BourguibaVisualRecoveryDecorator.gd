@@ -169,18 +169,52 @@ func _recover_tunis_identity() -> void:
 
 func _recover_theatre_front() -> void:
     var k := HeroMeshKit.new()
-    k.material("theatre_red", Color("#7a2e30"), .93)
-    k.material("theatre_dark", Color("#223236"), .58)
-    k.material("brass", Color("#9e7b40"), .30, .58)
-    k.material("warm", Color("#a97a48"), .72)
-    # Municipal Theatre front is a hero anchor: dark fascia + projecting canopy
-    # and warm door recesses create depth even before bespoke textures arrive.
+    k.material("theatre_red", Color("#6e2529"), .90)
+    k.material("theatre_dark", Color("#172b33"), .50, .08)
+    k.material("brass", Color("#a98444"), .27, .60)
+    k.material("warm", Color("#b67d45"), .62)
+    k.material("stone_mid", Color("#8f8878"), .86)
+    k.material("stone_shadow", Color("#68665f"), .90)
+    k.material("poster", Color("#d9c8a3"), .70)
+
+    # Municipal Theatre front is the visual anchor of this slice. Build shallow
+    # architectural relief over Astra's base mesh so the facade reads in grazing
+    # morning light instead of as one flat grey polygon.
+    k.box("stone_shadow", Vector3(-24,.60,30.92), Vector3(22.2,1.05,.22))
     k.box("theatre_dark", Vector3(-24,5.52,30.86), Vector3(14.8,.72,.18))
     k.box("brass", Vector3(-24,5.13,30.72), Vector3(14.8,.055,.04))
     k.box("theatre_red", Vector3(-24,4.66,29.80), Vector3(16.0,.22,1.92))
+
+    # Vertical pilasters and stepped cornices add the depth cues missing from the
+    # fixed close camera. End pilasters also separate the theatre from neighbours.
+    for x: float in [-34.2, -31.0, -27.0, -21.0, -17.0, -13.8]:
+        var height := 8.0 if x in [-31.0, -27.0, -21.0, -17.0] else 10.8
+        var centre_y := 7.45 if height < 10.0 else 8.30
+        k.box("stone_mid", Vector3(x,centre_y,30.83), Vector3(.38,height,.34))
+        k.box("stone_shadow", Vector3(x,centre_y-.05,30.64), Vector3(.14,height-.35,.12))
+    k.box("stone_mid", Vector3(-24,12.22,30.87), Vector3(21.0,.34,.42))
+    k.box("stone_shadow", Vector3(-24,12.51,30.78), Vector3(19.6,.18,.20))
+    k.box("brass", Vector3(-24,12.69,30.68), Vector3(17.8,.055,.055))
+
+    # Recessed entrance doors, transoms and poster cases make the ground floor
+    # read as an operating theatre instead of three black holes.
     for x: float in [-30.0,-24.0,-18.0]:
         k.box("warm", Vector3(x,2.66,31.72), Vector3(3.2,3.70,.055))
         k.box("theatre_dark", Vector3(x,2.66,31.60), Vector3(2.90,3.42,.05))
+        k.box("brass", Vector3(x,4.02,31.47), Vector3(2.86,.065,.045))
+        k.box("brass", Vector3(x,2.65,31.46), Vector3(.06,3.36,.045))
+        k.box("warm", Vector3(x,4.30,31.44), Vector3(2.55,.32,.04))
+    for poster_x: float in [-34.5,-13.5]:
+        k.box("brass", Vector3(poster_x,2.33,30.47), Vector3(1.55,2.55,.10))
+        k.box("poster", Vector3(poster_x,2.33,30.40), Vector3(1.34,2.30,.035))
+        k.box("theatre_red", Vector3(poster_x,1.52,30.36), Vector3(1.12,.28,.025))
+
+    # Small marquee lamps are modeled, not real lights, to keep the mobile light
+    # budget unchanged while adding readable warm punctuation at phone resolution.
+    for lamp_i in range(9):
+        var lx := -31.2 + float(lamp_i) * 1.8
+        k.box("brass", Vector3(lx,4.48,29.61), Vector3(.13,.13,.13))
+
     var node := _mesh_node(k.mesh(), "RecoveredTheatreFront")
     node.visibility_range_end = 120.0
     _identity_label(Vector3(-24,5.52,30.58), PI, "THÉÂTRE MUNICIPAL  •  المسرح البلدي", 44, 90.0)
@@ -197,6 +231,12 @@ func _naturalize_ficus_rows() -> void:
             mesh_node.position += delta
             var width_scale := .90 + float((i*7)%6)*.042
             var height_scale := .90 + float((i*5)%7)*.036
+            # Trees immediately beside the terminal crossings are intentionally
+            # narrower, as real street trees are crown-lifted/pruned for sightlines.
+            # This fixes the production intersection view without deleting foliage.
+            if absf(mesh_node.position.x) > 92.0:
+                width_scale *= .66
+                height_scale *= 1.04
             mesh_node.scale = Vector3(width_scale,height_scale,width_scale*.96)
             mesh_node.rotation.y += sin(token*.63)*.24
             if i+1 < children.size() and children[i+1] is MeshInstance3D and str(children[i+1].name).begins_with("FicusLOD"):
