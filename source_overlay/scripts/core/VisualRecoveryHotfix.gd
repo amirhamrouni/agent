@@ -34,8 +34,10 @@ func _patch_environment(root: Node) -> void:
             if env == null:
                 continue
             env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-            env.ambient_light_color = Color("#9eabb0")
-            env.ambient_light_energy = minf(env.ambient_light_energy, 0.28)
+            env.ambient_light_color = Color("#aeb8bb")
+            # Do not crush shadow fill. DayNightManager owns the time-of-day
+            # energy curve; this layer only prevents runaway values.
+            env.ambient_light_energy = minf(env.ambient_light_energy, 0.44)
             env.fog_enabled = false
             env.tonemap_mode = Environment.TONE_MAPPER_ACES
             if env.sky != null and env.sky.sky_material is ProceduralSkyMaterial:
@@ -46,7 +48,7 @@ func _patch_environment(root: Node) -> void:
                 sky_mat.ground_horizon_color = Color("#8fa1a7")
         elif node is DirectionalLight3D:
             var light := node as DirectionalLight3D
-            light.light_energy = minf(light.light_energy, 0.72)
+            light.light_energy = minf(light.light_energy, 0.82)
             light.light_color = Color("#f2d5a5")
 
 func _patch_osm_surface_contrast(root: Node) -> void:
