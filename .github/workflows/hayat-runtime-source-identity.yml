@@ -18,8 +18,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
-      EXPECTED_RUNTIME_SOURCE_TREE: 'a59a66943e68dc25ec862ef688bef0eeba12b517d18baeca2cdd40f963920f18'
-      EXPECTED_RUNTIME_SOURCE_FILES: '100'
+      EXPECTED_RUNTIME_SOURCE_TREE: '003c42bd60a7461d2b7a459a8b3875e3668b1d7f18096feaa866e291a5c5504f'
+      EXPECTED_RUNTIME_SOURCE_FILES: '101'
     steps:
       - uses: actions/checkout@v4
       - name: Reconstruct current runtime source
