@@ -4,6 +4,8 @@ const WIDTH := 1280
 const HEIGHT := 720
 const MIN_LUMA_SPREAD := 18.0
 const MIN_NON_BACKGROUND_RATIO := 0.08
+const MIN_MEAN_LUMA := 55.0
+const MAX_MEAN_LUMA := 205.0
 
 var _capture_dir := "res://visual-evidence"
 
@@ -65,6 +67,7 @@ func _capture(camera: Camera3D, position: Vector3, target: Vector3, filename: St
 
     var min_luma := 255.0
     var max_luma := 0.0
+    var luma_total := 0.0
     var non_background := 0
     var sample_count := 0
     var background := Color("#9fc8e6")
@@ -74,14 +77,20 @@ func _capture(camera: Camera3D, position: Vector3, target: Vector3, filename: St
             var luma := (0.2126 * px.r + 0.7152 * px.g + 0.0722 * px.b) * 255.0
             min_luma = min(min_luma, luma)
             max_luma = max(max_luma, luma)
+            luma_total += luma
             if Vector3(px.r, px.g, px.b).distance_to(Vector3(background.r, background.g, background.b)) > 0.08:
                 non_background += 1
             sample_count += 1
 
     var spread := max_luma - min_luma
+    var mean_luma := luma_total / float(maxi(sample_count, 1))
     var non_background_ratio := float(non_background) / float(maxi(sample_count, 1))
     if spread < MIN_LUMA_SPREAD:
         return {"ok": false, "reason": "LOW_LUMA_SPREAD", "spread": spread}
+    if mean_luma < MIN_MEAN_LUMA:
+        return {"ok": false, "reason": "UNDEREXPOSED", "mean_luma": mean_luma}
+    if mean_luma > MAX_MEAN_LUMA:
+        return {"ok": false, "reason": "OVEREXPOSED", "mean_luma": mean_luma}
     if non_background_ratio < MIN_NON_BACKGROUND_RATIO:
         return {"ok": false, "reason": "LOW_SCENE_COVERAGE", "ratio": non_background_ratio}
 
@@ -95,6 +104,7 @@ func _capture(camera: Camera3D, position: Vector3, target: Vector3, filename: St
         "path": path,
         "width": image.get_width(),
         "height": image.get_height(),
+        "mean_luma": mean_luma,
         "luma_spread": spread,
         "non_background_ratio": non_background_ratio,
     }
@@ -141,5 +151,5 @@ func _run() -> void:
     var file := FileAccess.open(_capture_dir.path_join("bourguiba-visual-evidence.json"), FileAccess.WRITE)
     file.store_string(JSON.stringify(evidence, "  ") + "\n")
     file.close()
-    print("BOURGUIBA_VISUAL_GATE_PASS captures=6 capture_only=true visual_acceptance=PENDING_HUMAN_REVIEW")
+    print("BOURGUIBA_VISUAL_GATE_PASS captures=6 exposure_contract=pass capture_only=true visual_acceptance=PENDING_HUMAN_REVIEW")
     quit(0)
