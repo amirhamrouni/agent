@@ -19,7 +19,7 @@ var road_graph = null
 var sidewalk_graph = null
 var traffic_coordinator = null
 var current_quality_tier := "AUTO"
-var pedestrian_palette := [
+var pedestrian_palette: Array[Color] = [
     Color("#2d3136"), Color("#6c4f3c"), Color("#6d6f62"),
     Color("#1f3951"), Color("#7a6147")
 ]
@@ -101,7 +101,7 @@ func _spawn_pedestrians() -> void:
             p.configure_traffic_coordinator(traffic_coordinator)
 
 func _decorate_pedestrian_variant(parent: Node3D, variant_index: int) -> void:
-    var accent := pedestrian_palette[variant_index % pedestrian_palette.size()]
+    var accent: Color = pedestrian_palette[variant_index % pedestrian_palette.size()]
     match variant_index:
         0:
             _variant_box(parent, "WorkBag", Vector3(0.42, 1.02, 0.05), Vector3(0.28, 0.34, 0.16), accent)
