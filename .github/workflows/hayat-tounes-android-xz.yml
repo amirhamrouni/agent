@@ -10,6 +10,7 @@ on:
       - 'raw_source_packs/**'
       - 'source_overlay/**'
       - 'source_overlay_packs/**'
+      - 'tools/source/hydrate_visual_assets.sh'
       - '.github/workflows/hayat-tounes-android-xz.yml'
 
 permissions:
@@ -28,7 +29,7 @@ jobs:
       GODOT_CHANNEL: 'stable'
       ANDROID_HOME: ${{ github.workspace }}/.android-sdk
       ANDROID_SDK_ROOT: ${{ github.workspace }}/.android-sdk
-      APK_PATH: ${{ github.workspace }}/_project/build/android/hayat-tounes-v0.53.35-debug.apk
+      APK_PATH: ${{ github.workspace }}/_project/build/android/tounsi-3ayach-v0.53.35-debug.apk
 
     steps:
       - uses: actions/checkout@v4
@@ -70,10 +71,20 @@ jobs:
           print(f'RECONSTRUCT_PASS base={base_count} overlay_pack={overlay_count} loose={loose_count} gdscript={gd_count}')
           PY
           grep -F 'config/version="0.53.35"' _project/project.godot
+          grep -F 'config/name="Tounsi 3ayach"' _project/project.godot
           grep -F 'config/icon="res://assets/branding/hayat_tounes_icon.svg"' _project/project.godot
           grep -F 'version/code=88' _project/export_presets.cfg
           grep -F 'version/name="0.53.35"' _project/export_presets.cfg
           grep -F 'package/unique_name="com.amir.hayattounes"' _project/export_presets.cfg
+          grep -F 'package/name="Tounsi 3ayach"' _project/export_presets.cfg
+
+      - name: Hydrate pinned CC0 production visuals
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash tools/source/hydrate_visual_assets.sh _project | tee visual-assets.log
+          test -s _project/assets/external/quaternius_character/character.glb
+          grep -F 'VISUAL_ASSET_READY' visual-assets.log
 
       - name: Setup Java 17
         uses: actions/setup-java@v6
@@ -151,6 +162,7 @@ jobs:
           log=Path('godot-runtime.log').read_text(errors='replace'); fatal=['SCRIPT ERROR:','Parse Error:','Failed to load script','Invalid access','Invalid assignment','Node not found:']; hits=[x for x in fatal if x in log]
           if hits: raise SystemExit('FATAL_GODOT_RUNTIME_ERRORS:'+','.join(hits))
           if '"real_osm": true' not in log: raise SystemExit('REAL_OSM_RUNTIME_READINESS_MISSING')
+          if '"real_player_asset": true' not in log: raise SystemExit('REAL_PLAYER_ASSET_RUNTIME_READINESS_MISSING')
           print('GODOT_RUNTIME_GATE_PASS')
           PY
 
@@ -158,7 +170,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail; cd _project; mkdir -p build/android
-          "$GODOT_BIN" --headless --path . --export-debug 'Android Development' 'build/android/hayat-tounes-v0.53.35-debug.apk' 2>&1 | tee ../godot-export.log; cd ..
+          "$GODOT_BIN" --headless --path . --export-debug 'Android Development' 'build/android/tounsi-3ayach-v0.53.35-debug.apk' 2>&1 | tee ../godot-export.log; cd ..
           python3 - <<'PY'
           from pathlib import Path
           log=Path('godot-export.log').read_text(errors='replace'); fatal=['SCRIPT ERROR:','Parse Error:','Failed to load script','ERROR: Failed to export','No project icon specified']; hits=[x for x in fatal if x in log]
@@ -173,19 +185,20 @@ jobs:
           set -euo pipefail
           "$ANDROID_HOME/build-tools/35.0.1/apksigner" verify --verbose --print-certs "$APK_PATH" | tee apk-signature.txt
           "$ANDROID_HOME/build-tools/35.0.1/zipalign" -c -P 16 -v 4 "$APK_PATH" | tee apk-zipalign.txt
-          sha256sum "$APK_PATH" | tee hayat-tounes-v0.53.35-debug.apk.sha256; ls -lh "$APK_PATH"
+          sha256sum "$APK_PATH" | tee tounsi-3ayach-v0.53.35-debug.apk.sha256; ls -lh "$APK_PATH"
 
       - name: Upload verified APK and runtime evidence
         uses: actions/upload-artifact@v4
         with:
-          name: hayat-tounes-v0.53.35-android-debug
+          name: tounsi-3ayach-v0.53.35-android-debug
           if-no-files-found: error
           retention-days: 14
           path: |
-            _project/build/android/hayat-tounes-v0.53.35-debug.apk
-            hayat-tounes-v0.53.35-debug.apk.sha256
+            _project/build/android/tounsi-3ayach-v0.53.35-debug.apk
+            tounsi-3ayach-v0.53.35-debug.apk.sha256
             apk-signature.txt
             apk-zipalign.txt
+            visual-assets.log
             godot-import.log
             bourguiba-blockout.log
             bourguiba-population.log
@@ -196,10 +209,11 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: hayat-tounes-v0.53.35-failure-diagnostics
+          name: tounsi-3ayach-v0.53.35-failure-diagnostics
           if-no-files-found: ignore
           retention-days: 7
           path: |
+            visual-assets.log
             godot-import.log
             bourguiba-blockout.log
             bourguiba-population.log
