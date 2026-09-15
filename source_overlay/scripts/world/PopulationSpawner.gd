@@ -12,6 +12,17 @@ const QUALITY_BUDGETS := {
 }
 const PEDESTRIAN_VARIANTS := ["commuter", "casual", "shopper", "elder", "student"]
 
+# The production Bourguiba hero reconstruction lives in this stable local frame.
+# Reusing the existing population budget inside this corridor makes the real OSM
+# slice read as inhabited without increasing mobile entity caps.
+const HERO_ORIGIN := Vector3(-130.0, 0.0, 30.0)
+const HERO_YAW := 0.119428926
+const HERO_X_MIN := -96.0
+const HERO_X_MAX := 98.0
+const HERO_SIDEWALK_Z := 23.2
+const HERO_MEDIAN_Z := 5.2
+const HERO_TRAFFIC_Z := 14.7
+
 @export var pedestrian_count := 24
 @export var traffic_count := 10
 
@@ -40,6 +51,12 @@ func spawn_all() -> void:
     traffic_count = clampi(traffic_count, 0, MAX_TRAFFIC)
     _spawn_pedestrians()
     _spawn_traffic()
+    # The raw OSM graph spans a much wider capture than the 240 m hero slice.
+    # Keep exactly the same population counts, but stage the already-created
+    # agents on Bourguiba's visible sidewalks/lanes so gameplay cameras do not
+    # see an empty city while agents wander outside the hero corridor.
+    if road_graph != null:
+        _focus_bourguiba_hero_corridor()
     apply_quality_tier(current_quality_tier)
 
 func population_budget_for_tier(tier: String) -> Dictionary:
@@ -94,7 +111,7 @@ func _spawn_pedestrians() -> void:
         p.add_child(col)
         var body := PlayerVisualFactory.build()
         body.name = "CitizenVisual"
-        body.scale = Vector3(0.88, 0.88, 0.88)
+        body.scale = Vector3(0.94, 0.94, 0.94)
         p.add_child(body)
         _decorate_pedestrian_variant(p, i % PEDESTRIAN_VARIANTS.size())
         if traffic_coordinator != null:
@@ -168,8 +185,65 @@ func _spawn_traffic() -> void:
         car.set_meta("traffic_visual_id", vehicle_id)
         var body := VehicleVisualFactory.build(vehicle_id)
         body.name = "TrafficVisual"
-        body.scale = Vector3(0.92, 0.92, 0.92)
+        body.scale = Vector3(0.96, 0.96, 0.96)
         car.add_child(body)
+
+func _hero_transform() -> Transform3D:
+    return Transform3D(Basis(Vector3.UP, HERO_YAW), HERO_ORIGIN)
+
+func _hero_point(local_point: Vector3) -> Vector3:
+    return _hero_transform() * local_point
+
+func _focus_bourguiba_hero_corridor() -> void:
+    var peds := get_tree().get_nodes_in_group("hayat_pedestrian")
+    var pedestrian_lanes := [HERO_SIDEWALK_Z, -HERO_SIDEWALK_Z, HERO_MEDIAN_Z, -HERO_MEDIAN_Z]
+    for i in range(peds.size()):
+        var ped = peds[i]
+        if not (ped is Node3D):
+            continue
+        var lane_index := i % pedestrian_lanes.size()
+        var direction := 1.0 if lane_index == 0 or lane_index == 2 else -1.0
+        var span := HERO_X_MAX - HERO_X_MIN
+        var start_x := HERO_X_MIN + fmod(float(i * 19 + lane_index * 7), span)
+        var end_x := clampf(start_x + direction * (42.0 + float(i % 4) * 6.0), HERO_X_MIN, HERO_X_MAX)
+        if abs(end_x - start_x) < 16.0:
+            end_x = clampf(start_x - direction * 52.0, HERO_X_MIN, HERO_X_MAX)
+        var local_z: float = pedestrian_lanes[lane_index]
+        var route: Array[Vector3] = []
+        for step in range(6):
+            var t := float(step) / 5.0
+            var lx := lerpf(start_x, end_x, t)
+            route.append(_hero_point(Vector3(lx, 0.0, local_z)))
+        (ped as Node3D).position = route[0] + Vector3(0.0, 1.0, 0.0)
+        if ped.has_method("set_route"):
+            ped.set_route(route)
+        (ped as Node3D).rotation.y = HERO_YAW + (PI * 0.5 if direction > 0.0 else -PI * 0.5)
+        ped.set_meta("hero_corridor_focused", true)
+
+    var cars := get_tree().get_nodes_in_group("hayat_traffic")
+    for i in range(cars.size()):
+        var car = cars[i]
+        if not (car is Node3D):
+            continue
+        var side := -1.0 if i % 2 == 0 else 1.0
+        var direction := 1.0 if side < 0.0 else -1.0
+        var lane_z := side * HERO_TRAFFIC_Z
+        var start_x := -88.0 + fmod(float(i * 27), 176.0)
+        if direction < 0.0:
+            start_x = -start_x
+        var lane_route: Array[Vector3] = [
+            _hero_point(Vector3(HERO_X_MIN, 0.70, lane_z)),
+            _hero_point(Vector3(HERO_X_MAX, 0.70, lane_z)),
+            _hero_point(Vector3(HERO_X_MAX, 0.70, lane_z + side * 3.2)),
+            _hero_point(Vector3(HERO_X_MIN, 0.70, lane_z + side * 3.2))
+        ]
+        if direction < 0.0:
+            lane_route.reverse()
+        if "lane_points" in car:
+            car.lane_points = lane_route
+        (car as Node3D).position = _hero_point(Vector3(start_x, 0.70, lane_z))
+        (car as Node3D).rotation.y = HERO_YAW + (PI * 0.5 if direction > 0.0 else -PI * 0.5)
+        car.set_meta("hero_corridor_focused", true)
 
 func apply_population_budget(pedestrian_budget: int, traffic_budget: int) -> void:
     pedestrian_budget = clampi(pedestrian_budget, 0, MAX_PEDESTRIANS)
