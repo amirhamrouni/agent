@@ -10,10 +10,10 @@ func _ready() -> void:
             _fail("BOURGUIBA_LIGHTING_MODE_INVALID:%s" % resolved)
             return
         var p := BourguibaLightingProfile.profile(mode, true)
-        if env.ambient_light_energy < 0.55 or env.ambient_light_energy > 0.75:
+        if env.ambient_light_energy < 0.14 or env.ambient_light_energy > 0.30:
             _fail("BOURGUIBA_LIGHTING_AMBIENT_INVALID:%s" % env.ambient_light_energy)
             return
-        if sun.light_energy < 1.0 or sun.light_energy > 1.35:
+        if sun.light_energy < 0.45 or sun.light_energy > 0.76:
             _fail("BOURGUIBA_LIGHTING_SUN_INVALID:%s" % sun.light_energy)
             return
         if bool(p.shadows) != sun.shadow_enabled:
