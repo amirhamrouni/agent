@@ -22,6 +22,18 @@ func _apply_time_state() -> void:
     var hours: float = float(world_clock.current_hour()) + float(world_clock.current_minute()) / 60.0
     var daylight: float = clampf(sin(((hours - 6.0) / 12.0) * PI), 0.0, 1.0)
     sun.rotation_degrees.x = lerpf(-8.0, -62.0, daylight)
-    sun.light_energy = lerpf(0.05, 0.90, daylight)
+
+    # The previous curve treated 08:00 as half-night (sun ~0.48, ambient ~0.24),
+    # which crushed every shaded pavement/facade in the real ProductionWorld
+    # captures. Keep night genuinely dark, but once the sun is above the horizon
+    # use a Tunis daylight floor and converge on the validated lighting profile.
+    var sun_energy := 0.05
+    var ambient_energy := 0.14
+    if daylight > 0.01:
+        sun_energy = lerpf(0.40, 1.18, daylight)
+        ambient_energy = lerpf(0.34, 0.62, daylight)
+    sun.light_energy = sun_energy
+
     if world_environment and world_environment.environment:
-        world_environment.environment.ambient_light_energy = lerpf(0.12, 0.35, daylight)
+        world_environment.environment.ambient_light_energy = ambient_energy
+        world_environment.environment.tonemap_mode = Environment.TONE_MAPPER_FILMIC
