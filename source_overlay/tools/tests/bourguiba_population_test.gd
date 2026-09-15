@@ -3,12 +3,23 @@ extends SceneTree
 const PopulationSpawnerScript = preload("res://scripts/world/PopulationSpawner.gd")
 
 func _initialize() -> void:
+    # Structural runtime gate: attach the spawner to a real scene root before spawn_all(),
+    # because PopulationSpawner applies budgets through get_tree() groups.
+    var test_world := Node3D.new()
+    test_world.name = "BourguibaPopulationGateWorld"
+    root.add_child(test_world)
+
     var spawner = PopulationSpawnerScript.new()
-    # This gate verifies deterministic population construction/budgets, not agent movement.
-    # Disable processing before entering the tree so spawned CharacterBody3D agents cannot
-    # run physics while the structural assertions execute in headless CI.
+    spawner.name = "PopulationSpawner"
     spawner.process_mode = Node.PROCESS_MODE_DISABLED
-    root.add_child(spawner)
+    test_world.add_child(spawner)
+
+    # SceneTree attachment is synchronous, but fail closed if a future engine/runtime
+    # change leaves this structural test detached.
+    if spawner.get_tree() == null:
+        push_error("BOURGUIBA_POPULATION_TREE_ATTACHMENT_INVALID")
+        quit(60)
+        return
 
     var expected := {
         "LOW": [12, 4],
