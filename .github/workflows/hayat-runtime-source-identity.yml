@@ -18,11 +18,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
-      EXPECTED_RUNTIME_SOURCE_TREE: 'c7a121f4de85c74369070f083d5c11d4835e351c360ea883c9a5bfbcaa700d1b'
+      EXPECTED_RUNTIME_SOURCE_TREE: 'ad5459556ab4e2c27f805e3f439f8da1c612c8f9773152541cad3b7aaa350168'
       EXPECTED_RUNTIME_SOURCE_FILES: '96'
     steps:
       - uses: actions/checkout@v4
-
       - name: Reconstruct current runtime source
         shell: bash
         run: |
@@ -30,110 +29,60 @@ jobs:
           python3 - <<'PY'
           import json
           from pathlib import Path
-
-          out = Path('_project')
-          out.mkdir(parents=True, exist_ok=True)
-
+          out = Path('_project'); out.mkdir(parents=True, exist_ok=True)
           def apply_packs(folder: str, expected: int | None = None) -> int:
-              source = Path(folder)
-              packs = sorted(source.glob('*.jsonl'))
-              if expected is not None and len(packs) != expected:
-                  raise SystemExit(f'{folder}:EXPECTED_{expected}_PACKS_FOUND_{len(packs)}')
+              packs = sorted(Path(folder).glob('*.jsonl'))
+              if expected is not None and len(packs) != expected: raise SystemExit(f'{folder}:EXPECTED_{expected}_PACKS_FOUND_{len(packs)}')
               chunks = {}
               for pack in packs:
                   for lineno, raw in enumerate(pack.read_text(encoding='utf-8').splitlines(), 1):
-                      if not raw.strip():
-                          continue
-                      row = json.loads(raw)
-                      rel = str(row['path'])
-                      idx = int(row.get('index', 0))
-                      if rel.startswith('/') or '..' in Path(rel).parts:
-                          raise SystemExit(f'UNSAFE_PATH:{pack}:{lineno}:{rel}')
-                      chunks.setdefault(rel, {})[idx] = str(row['content'])
+                      if not raw.strip(): continue
+                      row=json.loads(raw); rel=str(row['path']); idx=int(row.get('index',0))
+                      if rel.startswith('/') or '..' in Path(rel).parts: raise SystemExit(f'UNSAFE_PATH:{pack}:{lineno}:{rel}')
+                      chunks.setdefault(rel,{})[idx]=str(row['content'])
               for rel, parts in chunks.items():
-                  indexes = sorted(parts)
-                  if indexes != list(range(len(indexes))):
-                      raise SystemExit(f'NON_CONTIGUOUS:{rel}:{indexes}')
-                  target = out / rel
-                  target.parent.mkdir(parents=True, exist_ok=True)
-                  target.write_text(''.join(parts[i] for i in indexes), encoding='utf-8')
+                  indexes=sorted(parts)
+                  if indexes != list(range(len(indexes))): raise SystemExit(f'NON_CONTIGUOUS:{rel}:{indexes}')
+                  target=out/rel; target.parent.mkdir(parents=True,exist_ok=True); target.write_text(''.join(parts[i] for i in indexes),encoding='utf-8')
               return len(chunks)
-
-          apply_packs('raw_source_packs', 18)
-          apply_packs('source_overlay_packs', 5)
-
-          loose = Path('source_overlay')
+          apply_packs('raw_source_packs',18); apply_packs('source_overlay_packs',5)
+          loose=Path('source_overlay')
           if loose.is_dir():
               for src in loose.rglob('*'):
                   if src.is_file():
-                      rel = src.relative_to(loose)
-                      target = out / rel
-                      target.parent.mkdir(parents=True, exist_ok=True)
-                      target.write_bytes(src.read_bytes())
+                      target=out/src.relative_to(loose); target.parent.mkdir(parents=True,exist_ok=True); target.write_bytes(src.read_bytes())
           PY
-
       - name: Verify byte-identical runtime/export source identity
         shell: bash
         run: |
           set -euo pipefail
           python3 - <<'PY'
           from pathlib import Path
-          import hashlib
-          import json
-          import os
-
-          root = Path('_project')
-          root_files = {
-              'project.godot', 'export_presets.cfg', 'RELEASE_METADATA.json',
-              'main.tscn', 'main.gd', 'main.gd.uid', 'main_production.tscn'
-          }
-          runtime_dirs = {'autoload', 'scripts', 'shaders', 'data', 'assets'}
-          excluded_names = {'SOURCES.json'}
-
+          import hashlib,json,os
+          root=Path('_project')
+          root_files={'project.godot','export_presets.cfg','RELEASE_METADATA.json','main.tscn','main.gd','main.gd.uid','main_production.tscn'}
+          runtime_dirs={'autoload','scripts','shaders','data','assets'}; excluded_names={'SOURCES.json'}
           def allowed(rel: Path) -> bool:
-              if not rel.parts or rel.name in excluded_names or rel.name.endswith(('.pyc', '.pyo')):
-                  return False
-              if len(rel.parts) == 1:
-                  return rel.name in root_files
+              if not rel.parts or rel.name in excluded_names or rel.name.endswith(('.pyc','.pyo')): return False
+              if len(rel.parts)==1: return rel.name in root_files
               return rel.parts[0] in runtime_dirs
-
-          files = []
-          for path in sorted(root.rglob('*'), key=lambda p: p.as_posix()):
-              rel = path.relative_to(root)
-              if not allowed(rel):
-                  continue
-              if path.is_symlink():
-                  raise SystemExit(f'SYMLINK_RUNTIME_INPUT:{rel.as_posix()}')
-              if not path.is_file():
-                  continue
-              digest = hashlib.sha256(path.read_bytes()).hexdigest()
-              files.append({'path': rel.as_posix(), 'sha256': digest, 'size_bytes': path.stat().st_size})
-
-          h = hashlib.sha256()
-          for item in files:
-              h.update(f"{item['path']}\0{item['sha256']}\0{item['size_bytes']}\n".encode('utf-8'))
-          tree = h.hexdigest()
-          expected_tree = os.environ['EXPECTED_RUNTIME_SOURCE_TREE']
-          expected_files = int(os.environ['EXPECTED_RUNTIME_SOURCE_FILES'])
-          evidence = {
-              'schema_version': 1,
-              'algorithm': 'sha256-path-digest-size-v1',
-              'file_count': len(files),
-              'tree_sha256': tree,
-              'expected_tree_sha256': expected_tree,
-              'expected_file_count': expected_files,
-              'match': tree == expected_tree and len(files) == expected_files,
-              'files': files,
-          }
-          Path('runtime-source-identity-ci.json').write_text(json.dumps(evidence, indent=2, sort_keys=True) + '\n', encoding='utf-8')
+          files=[]
+          for path in sorted(root.rglob('*'),key=lambda p:p.as_posix()):
+              rel=path.relative_to(root)
+              if not allowed(rel): continue
+              if path.is_symlink(): raise SystemExit(f'SYMLINK_RUNTIME_INPUT:{rel.as_posix()}')
+              if not path.is_file(): continue
+              digest=hashlib.sha256(path.read_bytes()).hexdigest(); files.append({'path':rel.as_posix(),'sha256':digest,'size_bytes':path.stat().st_size})
+          h=hashlib.sha256()
+          for item in files: h.update(f"{item['path']}\0{item['sha256']}\0{item['size_bytes']}\n".encode('utf-8'))
+          tree=h.hexdigest(); expected_tree=os.environ['EXPECTED_RUNTIME_SOURCE_TREE']; expected_files=int(os.environ['EXPECTED_RUNTIME_SOURCE_FILES'])
+          evidence={'schema_version':1,'algorithm':'sha256-path-digest-size-v1','file_count':len(files),'tree_sha256':tree,'expected_tree_sha256':expected_tree,'expected_file_count':expected_files,'match':tree==expected_tree and len(files)==expected_files,'files':files}
+          Path('runtime-source-identity-ci.json').write_text(json.dumps(evidence,indent=2,sort_keys=True)+'\n',encoding='utf-8')
           print(f'CI_RUNTIME_SOURCE_IDENTITY tree={tree} files={len(files)}')
-          if len(files) != expected_files:
-              raise SystemExit(f'RUNTIME_SOURCE_FILE_COUNT_MISMATCH expected={expected_files} actual={len(files)}')
-          if tree != expected_tree:
-              raise SystemExit(f'RUNTIME_SOURCE_TREE_MISMATCH expected={expected_tree} actual={tree}')
+          if len(files)!=expected_files: raise SystemExit(f'RUNTIME_SOURCE_FILE_COUNT_MISMATCH expected={expected_files} actual={len(files)}')
+          if tree!=expected_tree: raise SystemExit(f'RUNTIME_SOURCE_TREE_MISMATCH expected={expected_tree} actual={tree}')
           print('RUNTIME_SOURCE_IDENTITY_PASS')
           PY
-
       - name: Upload identity evidence
         if: always()
         uses: actions/upload-artifact@v4
