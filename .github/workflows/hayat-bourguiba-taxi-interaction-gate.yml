@@ -85,7 +85,7 @@ jobs:
         run: |
           set -euo pipefail
           cd _project
-          "$GODOT_BIN" --headless --path . --editor --script res://tools/tests/bourguiba_taxi_interaction_test.gd 2>&1 | tee ../taxi-interaction-runtime.log
+          "$GODOT_BIN" --headless --path . --script res://tools/tests/bourguiba_taxi_interaction_test.gd 2>&1 | tee ../taxi-interaction-runtime.log
           cd ..
           grep -F 'BOURGUIBA_TAXI_INTERACTION_GATE_PASS' taxi-interaction-runtime.log
           if grep -E 'SCRIPT ERROR:|Parse Error:|BOURGUIBA_TAXI_.*INVALID' taxi-interaction-runtime.log; then exit 72; fi
