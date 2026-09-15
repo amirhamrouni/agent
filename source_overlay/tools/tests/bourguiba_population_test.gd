@@ -3,8 +3,12 @@ extends SceneTree
 const PopulationSpawnerScript = preload("res://scripts/world/PopulationSpawner.gd")
 
 func _initialize() -> void:
-    # Structural runtime gate: attach the spawner to a real scene root before spawn_all(),
-    # because PopulationSpawner applies budgets through get_tree() groups.
+    # SceneTree.root is not guaranteed to be attached during _initialize() in Godot 4.7.2.
+    # Defer the structural runtime gate until the first process frame, when get_tree()
+    # group operations used by PopulationSpawner are valid.
+    process_frame.connect(_run_gate, CONNECT_ONE_SHOT)
+
+func _run_gate() -> void:
     var test_world := Node3D.new()
     test_world.name = "BourguibaPopulationGateWorld"
     root.add_child(test_world)
@@ -14,9 +18,7 @@ func _initialize() -> void:
     spawner.process_mode = Node.PROCESS_MODE_DISABLED
     test_world.add_child(spawner)
 
-    # SceneTree attachment is synchronous, but fail closed if a future engine/runtime
-    # change leaves this structural test detached.
-    if spawner.get_tree() == null:
+    if spawner.get_tree() != self:
         push_error("BOURGUIBA_POPULATION_TREE_ATTACHMENT_INVALID")
         quit(60)
         return
